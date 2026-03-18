@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&family=Creepster&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-logo: "Creepster", system-ui, sans-serif;
+}
+
+@layer utilities {
+  .rack-panel {
+    background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+    border-top: 1px solid #444;
+    border-bottom: 2px solid #000;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 20px rgba(0,0,0,0.5);
+    border-radius: 4px;
+  }
+
+  .rack-screw {
+    background: radial-gradient(circle at 30% 30%, #888, #333);
+    box-shadow: inset 0 -1px 1px rgba(0,0,0,0.5), 0 1px 1px rgba(255,255,255,0.1);
+  }
+
+  /* Custom Range Slider - Fader Style */
+  input[type=range].fader {
+    -webkit-appearance: none;
+    @apply w-full bg-transparent;
+  }
+
+  input[type=range].fader:focus {
+    outline: none;
+  }
+
+  input[type=range].fader::-webkit-slider-runnable-track {
+    @apply w-full h-2 cursor-pointer rounded-sm bg-[#0a0a0a] border border-[#1f1f1f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)];
+  }
+
+  input[type=range].fader::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    @apply h-6 w-3 rounded-sm cursor-pointer shadow-[0_2px_5px_rgba(0,0,0,0.8)] border border-[#111] border-t-[#666] transition-transform;
+    background: linear-gradient(180deg, #555 0%, #222 100%);
+    margin-top: -8px;
+  }
+
+  input[type=range].fader:hover::-webkit-slider-thumb {
+    background: linear-gradient(180deg, #666 0%, #333 100%);
+  }
+
+  input[type=range].fader:focus::-webkit-slider-thumb {
+    @apply ring-1 ring-offset-1 ring-offset-[#1a1a1a] ring-current;
+  }
+
+  input[type=range].fader::-moz-range-track {
+    @apply w-full h-2 cursor-pointer rounded-sm bg-[#0a0a0a] border border-[#1f1f1f] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)];
+  }
+
+  input[type=range].fader::-moz-range-thumb {
+    @apply h-6 w-3 rounded-sm cursor-pointer shadow-[0_2px_5px_rgba(0,0,0,0.8)] border border-[#111] border-t-[#666] transition-transform;
+    background: linear-gradient(180deg, #555 0%, #222 100%);
+  }
+}
