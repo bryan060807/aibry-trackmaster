@@ -72,6 +72,7 @@ without changing production authority:
 ```powershell
 cd C:\Users\bryan\aibry\projects\aibry-trackmaster
 npm install
+npm --prefix trackmaster-api install
 npm run check:api
 powershell -ExecutionPolicy Bypass -File scripts\validate-windows-readiness.ps1
 ```
@@ -86,4 +87,5 @@ npm run pm2:windows-readiness:delete
 
 Do not run `pm2 save` for `trackmaster-windows-readiness-api`, do not open a
 firewall rule for it, and do not point Fedora nginx or Cloudflare at it. See
-[docs/windows-readiness-runbook.md](docs/windows-readiness-runbook.md).
+[docs/windows-readiness-runbook.md](docs/windows-readiness-runbook.md) and the
+Windows operator packet under [docs/cutover](docs/cutover).

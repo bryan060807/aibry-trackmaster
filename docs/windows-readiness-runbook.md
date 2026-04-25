@@ -5,6 +5,15 @@ a live production cutover. Fedora remains the authoritative TrackMaster runtime,
 database owner, storage owner, nginx front door, and Cloudflare target until the
 separate Fedora cutover runbook is approved and executed.
 
+## Current Allowed State
+
+As of April 24, 2026:
+
+- GO: localhost and other non-production rehearsal validation.
+- NO-GO: live production cutover.
+- NO-GO: dual writers.
+- NO-GO: treating Postgres as authoritative while Fedora SQLite writes continue.
+
 ## Guardrails
 
 - Do not point Fedora nginx or Cloudflare at the Windows readiness API.
@@ -12,6 +21,7 @@ separate Fedora cutover runbook is approved and executed.
 - Do not run `pm2 save` for `trackmaster-windows-readiness-api`.
 - Do not set `TRACKMASTER_REPOSITORY_BACKEND=postgres` for this Windows process.
 - Do not reuse Fedora production `data/` or audio storage paths.
+- Do not start any Windows production writer until Fedora handoff is complete.
 
 The Windows readiness process binds to `127.0.0.1:3104`, uses SQLite, and writes
 only under `data-windows-readiness/`, which is intentionally separate from the
@@ -22,6 +32,7 @@ Fedora-owned production data.
 ```powershell
 cd C:\Users\bryan\aibry\projects\aibry-trackmaster
 npm install
+npm --prefix trackmaster-api install
 npm run start:windows-readiness
 ```
 
@@ -39,6 +50,7 @@ Stop the foreground process with `Ctrl+C`.
 ```powershell
 cd C:\Users\bryan\aibry\projects\aibry-trackmaster
 npm install
+npm --prefix trackmaster-api install
 npm run pm2:windows-readiness:start
 npm run pm2:windows-readiness:status
 Invoke-RestMethod http://127.0.0.1:3104/api/readiness
@@ -69,6 +81,15 @@ Expected readiness properties:
 - `storage.ready: true`
 - `runtime.host: 127.0.0.1`
 - `runtime.production: false`
+
+Use the Windows runtime operator checklist before any approved cutover work:
+
+- `docs/cutover/trackmaster-windows-runtime-readiness-checklist.md`
+- `docs/cutover/trackmaster-production-env-switch-template.md`
+- `docs/cutover/trackmaster-freeze-window-checklist.md`
+- `docs/cutover/trackmaster-source-of-truth-handoff-checklist.md`
+- `docs/cutover/trackmaster-post-cutover-validation-checklist.md`
+- `docs/cutover/trackmaster-rollback-execution-worksheet.md`
 
 Any Postgres runtime validation or live API cutover remains covered by
 `trackmaster-api/docs/fedora-cutover-runbook.md`, not this Windows runbook.
