@@ -73,3 +73,23 @@ Add this ingress rule to the existing tunnel configuration:
 ```
 
 Restart the existing tunnel user service after changing its config.
+
+## Backend-Switch Rehearsal
+
+Backend-switch rehearsal instructions live in
+[BACKEND_SWITCH_REHEARSAL.md](BACKEND_SWITCH_REHEARSAL.md).
+
+Do not modify the live user service to point at Postgres for rehearsal. The
+rehearsal backend runs on an alternate local port and is stopped after
+validation.
+
+## Production Cutover Planning
+
+Production cutover planning instructions live in
+[PRODUCTION_CUTOVER_PLAN.md](PRODUCTION_CUTOVER_PLAN.md),
+[FEDORA_REHEARSAL_RUNBOOK.md](FEDORA_REHEARSAL_RUNBOOK.md), and
+[ROLLBACK_WORKSHEET.md](ROLLBACK_WORKSHEET.md).
+
+This remains a documentation and operator-planning path only. Do not apply the
+production `.env` backend switch until the blockers in that plan are explicitly
+cleared and approved.

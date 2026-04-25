@@ -8,6 +8,7 @@ coverage/
 data/
 data-windows-readiness/
 trackmaster-api/reports/
+migration-reports/
 .DS_Store
 *.log
 .env*
