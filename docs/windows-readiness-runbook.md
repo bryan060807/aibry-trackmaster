@@ -27,6 +27,34 @@ The Windows readiness process binds to `127.0.0.1:3104`, uses SQLite, and writes
 only under `data-windows-readiness/`, which is intentionally separate from the
 Fedora-owned production data.
 
+The production PM2 scaffold now lives in `ecosystem.production.config.cjs`, but
+that does not change the current no-cutover guardrails. Treat it as a separate
+approved-cutover runtime only:
+
+- API PM2 name: `trackmaster-api`
+- UI PM2 name: `trackmaster-ui`
+- Production API port: `3004`
+- Production UI port: `3000`
+- Readiness-only PM2 name that must remain separate: `trackmaster-windows-readiness-api`
+
+Do not start the production scaffold while any required env value is still a
+placeholder. In particular, do not start it with an unreviewed
+`TRACKMASTER_POSTGRES_URL`, an unreviewed `TRACKMASTER_DATA_DIR`, or a
+placeholder `TRACKMASTER_JWT_SECRET`.
+
+The production PM2 config reads those values directly from the Windows
+environment and fails closed if they are unset or still marked as placeholders.
+
+The production UI scaffold is only a static host for `dist/`. It does not proxy
+`/api` locally. HTTP `200` on the UI host proves static hosting only; full
+browser flows still require the approved front-door or reverse-proxy path that
+maps `/api` to the TrackMaster API process.
+
+TrackMaster storage still resolves to `TRACKMASTER_DATA_DIR/uploads`. Fedora
+durable uploads therefore still require an operational Windows mount or junction
+at that exact uploads path before Windows production can claim Fedora-backed
+storage ownership.
+
 ## One-Shot Local API Check
 
 ```powershell
@@ -71,6 +99,8 @@ pm2 save
 ```powershell
 npm run check:api
 powershell -ExecutionPolicy Bypass -File scripts\validate-windows-readiness.ps1
+node --check server\static-web.js
+node --check ecosystem.production.config.cjs
 ```
 
 Expected readiness properties:

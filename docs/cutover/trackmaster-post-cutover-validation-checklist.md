@@ -16,11 +16,14 @@ As of April 24, 2026:
 ## Local Windows Validation
 
 - [ ] `pm2 status trackmaster-api` shows the approved production API process.
+- [ ] `pm2 status trackmaster-ui` shows the approved production UI process.
 - [ ] `Invoke-RestMethod http://127.0.0.1:3004/api/health` returns `ok: true`.
 - [ ] `Invoke-RestMethod http://127.0.0.1:3004/api/readiness` returns
       `repositoryBackend: postgres`.
 - [ ] `Invoke-RestMethod http://127.0.0.1:3004/api/readiness` reports the
       expected host, port, and production mode.
+- [ ] `Invoke-WebRequest http://127.0.0.1:3000/ -UseBasicParsing` returns
+      HTTP `200` from the approved UI static host.
 - [ ] API log path recorded:
 - [ ] API process id recorded:
 
@@ -29,6 +32,9 @@ As of April 24, 2026:
 - [ ] The current root build output in `dist/` matches the approved cutover
       artifact.
 - [ ] The Windows static host is serving the approved `dist/` directory.
+- [ ] The Windows static host validation is treated as static-host proof only;
+      approved same-origin `/api` routing is validated through the reviewed
+      front-door or reverse-proxy path.
 - [ ] Login screen loads without missing asset errors.
 - [ ] Session restore works for an existing user.
 - [ ] Preset list loads.

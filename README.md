@@ -22,6 +22,12 @@ in this repo is readiness-only; it binds to localhost, uses a separate
 `data-windows-readiness/` SQLite data directory, and must not be saved into the
 Windows PM2 resurrect list as a production process.
 
+The repo now also includes a separate Windows production PM2 scaffold in
+`ecosystem.production.config.cjs`. That file is for an approved Windows cutover
+only. It must not reuse `trackmaster-windows-readiness-api`, and it must not be
+started while placeholder secrets, placeholder Postgres connection values, or
+placeholder storage paths are still in place.
+
 ## Repository Layout
 
 The current split is intentional and these paths are required source, not
@@ -271,6 +277,95 @@ planning `NO_GO` until the remaining blockers are explicitly cleared and approve
 ## Garage Deployment
 
 See [deploy/README.md](deploy/README.md).
+
+## Windows Production Runtime Scaffold
+
+The Windows production scaffold is separate from the readiness-only runtime:
+
+- PM2 ecosystem: `ecosystem.production.config.cjs`
+- API process: `trackmaster-api`
+- UI process: `trackmaster-ui`
+- API entrypoint: `server/index.js`
+- UI entrypoint: `server/static-web.js`
+
+The API process is production-capable now. The UI process is a minimal static
+host for the root `dist/` build output. It serves the SPA bundle and returns a
+clear error for direct `/api` requests because it does not act as a reverse
+proxy.
+
+Production runtime scripts:
+
+```powershell
+npm run pm2:production:start
+npm run pm2:production:status
+npm run pm2:production:logs
+npm run pm2:production:restart
+npm run pm2:production:stop
+npm run pm2:production:save
+```
+
+Legacy `runtime:*` aliases still exist, but the `pm2:production:*` names are the
+reviewed production entrypoints.
+
+Do not run `npm run pm2:production:start` until all required production env
+values are set to approved non-placeholder values.
+
+### Required Windows Production Env Values
+
+The production PM2 scaffold expects reviewed values for:
+
+- `TRACKMASTER_HOST`
+- `TRACKMASTER_UI_HOST`
+- `TRACKMASTER_DATA_DIR`
+- `TRACKMASTER_POSTGRES_URL`
+- `TRACKMASTER_POSTGRES_POOL_MAX`
+- `TRACKMASTER_JWT_SECRET`
+- `TRACKMASTER_JWT_EXPIRES_IN`
+- `TRACKMASTER_SESSION_COOKIE`
+- `TRACKMASTER_SESSION_EXPIRES_IN_SECONDS`
+- `TRACKMASTER_API_RATE_WINDOW_MS`
+- `TRACKMASTER_API_RATE_LIMIT`
+- `TRACKMASTER_AUTH_RATE_WINDOW_MS`
+- `TRACKMASTER_AUTH_RATE_LIMIT`
+- `TRACKMASTER_UPLOAD_LIMIT`
+- `CORS_ORIGIN`
+
+The scaffold defaults `TRACKMASTER_HOST` and `TRACKMASTER_UI_HOST` to
+`127.0.0.1` for local validation only. If Fedora or another approved front-door
+proxy must reach the Windows services directly, replace those bind hosts with an
+approved Windows LAN, VPN, or proxy-facing address before startup.
+
+`TRACKMASTER_DATA_DIR`, `TRACKMASTER_POSTGRES_URL`, and
+`TRACKMASTER_JWT_SECRET` are read strictly from the environment by
+`ecosystem.production.config.cjs`. The PM2 config refuses to load if any of
+those values are missing or still use a placeholder marker.
+
+### Storage Gap
+
+Current TrackMaster code still uses `TRACKMASTER_DATA_DIR/uploads` as a local
+filesystem path. The API does not yet implement a Fedora storage adapter or a
+separate remote uploads configuration.
+
+That means a Fedora-backed storage design on Windows still requires an
+operational mount or junction under:
+
+```text
+<TRACKMASTER_DATA_DIR>\uploads
+```
+
+Until that mount or junction exists, Windows production will write to the local
+filesystem path configured by `TRACKMASTER_DATA_DIR`.
+
+### Validation Boundary
+
+- API validation should use `/api/readiness` and confirm
+  `repositoryBackend: postgres`.
+- UI validation should use HTTP `200` on the static host and confirm that the
+  approved `dist/` bundle is being served.
+
+The UI static host only proves static serving. Full same-origin browser flows
+still require the approved front-door or reverse-proxy path that maps `/api`
+requests to the TrackMaster API service.
 
 ## Windows Readiness Only
 
