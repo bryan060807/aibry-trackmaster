@@ -1,5 +1,3 @@
-import lameJsSource from 'lamejs/lame.all.js?raw';
-
 type Mp3EncoderInstance = {
   encodeBuffer(left: Int16Array, right?: Int16Array): Int8Array;
   flush(): Int8Array;
@@ -8,22 +6,33 @@ type Mp3EncoderInstance = {
 type Mp3EncoderConstructor = new (channels: number, sampleRate: number, kbps: number) => Mp3EncoderInstance;
 
 let Mp3Encoder: Mp3EncoderConstructor | null = null;
+let mp3EncoderLoadPromise: Promise<Mp3EncoderConstructor> | null = null;
 
-function getMp3Encoder() {
+async function getMp3Encoder() {
   if (Mp3Encoder) return Mp3Encoder;
+  if (mp3EncoderLoadPromise) return mp3EncoderLoadPromise;
 
-  try {
-    const loadLameJs = new Function(`${lameJsSource}\nreturn lamejs;`) as () => { Mp3Encoder?: Mp3EncoderConstructor };
-    const lamejs = loadLameJs();
-    if (!lamejs?.Mp3Encoder) {
-      throw new Error('Mp3Encoder was not exported.');
-    }
-    Mp3Encoder = lamejs.Mp3Encoder;
-    return Mp3Encoder;
-  } catch (err) {
-    console.error('Failed to initialize MP3 encoder', err);
-    throw new Error('MP3 encoder could not be initialized in this browser.');
-  }
+  mp3EncoderLoadPromise = import('lamejs/lame.all.js?raw')
+    .then((module) => {
+      try {
+        const loadLameJs = new Function(`${module.default}\nreturn lamejs;`) as () => { Mp3Encoder?: Mp3EncoderConstructor };
+        const lamejs = loadLameJs();
+        if (!lamejs?.Mp3Encoder) {
+          throw new Error('Mp3Encoder was not exported.');
+        }
+        Mp3Encoder = lamejs.Mp3Encoder;
+        return Mp3Encoder;
+      } catch (err) {
+        console.error('Failed to initialize MP3 encoder', err);
+        throw new Error('MP3 encoder could not be initialized in this browser.');
+      }
+    })
+    .catch((err) => {
+      mp3EncoderLoadPromise = null;
+      throw err;
+    });
+
+  return mp3EncoderLoadPromise;
 }
 
 export function audioBufferToWav(buffer: AudioBuffer): Blob {
@@ -77,10 +86,10 @@ function writeString(view: DataView, offset: number, string: string) {
   }
 }
 
-export function audioBufferToMp3(buffer: AudioBuffer, kbps: number): Blob {
+export async function audioBufferToMp3(buffer: AudioBuffer, kbps: number): Promise<Blob> {
   const channels = Math.min(buffer.numberOfChannels, 2);
   const sampleRate = buffer.sampleRate;
-  const Encoder = getMp3Encoder();
+  const Encoder = await getMp3Encoder();
   const encoder = new Encoder(channels, sampleRate, kbps);
   const mp3Data: BlobPart[] = [];
 

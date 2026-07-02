@@ -54,7 +54,7 @@ function createCorsHeaders(config) {
     res.setHeader('Access-Control-Allow-Origin', config.corsOrigin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-File-Name, X-Format, X-Duration-Seconds');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Prefer, X-Album, X-Async-Export, X-Artist, X-Comment, X-Copyright, X-Date, X-Duration-Seconds, X-File-Name, X-Format, X-Genre, X-Release-Date, X-Release-Year, X-Title, X-Track-Album, X-Track-Artist, X-Track-Comment, X-Track-Genre, X-Track-Title, X-Year');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
@@ -93,7 +93,7 @@ function mountApiRoutes(app, basePath, context) {
   app.use(`${basePath}/auth`, express.json({ limit: '16kb' }));
   app.use(`${basePath}/presets`, auth.authenticate, express.json({ limit: '128kb' }));
   app.use(`${basePath}/tracks`, auth.authenticate, express.raw({
-    type: ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/mpeg', 'audio/mp3'],
+    type: ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/mpeg', 'audio/mp3', 'audio/flac', 'audio/x-flac'],
     limit: config.uploadLimit,
   }));
 

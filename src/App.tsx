@@ -400,7 +400,18 @@ export default function App() {
         </div>
       </footer>
 
-      <ExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} onExport={exportTrack} accentBg={accent.bg} accentClass={accent.class} isExporting={isExporting} canExport={hasAudio} />
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={(format, bitrate, metadata) => {
+          void exportTrack(format, bitrate, metadata);
+          setShowExportModal(false);
+        }}
+        accentBg={accent.bg}
+        accentClass={accent.class}
+        isExporting={isExporting}
+        canExport={hasAudio}
+      />
       
       {/* 6. HELP TOGGLE */}
       <button 

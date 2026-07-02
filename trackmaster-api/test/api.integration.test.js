@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { afterEach, beforeEach, test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { openDatabase } from '../src/db.js';
@@ -171,6 +172,14 @@ test('track history CRUD stores, downloads, lists, and deletes exported audio', 
   assert.equal(download.status, 200);
   assert.equal(Buffer.from(await download.arrayBuffer()).toString('hex'), '01020304');
 
+  const partial = await rawRequest(`/api/tracks/${upload.body.track.id}/download`, {
+    cookie,
+    headers: { Range: 'bytes=1-2' },
+  });
+  assert.equal(partial.status, 206);
+  assert.equal(partial.headers.get('content-range'), 'bytes 1-2/4');
+  assert.equal(Buffer.from(await partial.arrayBuffer()).toString('hex'), '0203');
+
   const deleted = await request(`/api/tracks/${upload.body.track.id}`, {
     method: 'DELETE',
     cookie,
@@ -180,6 +189,125 @@ test('track history CRUD stores, downloads, lists, and deletes exported audio', 
 
   const afterDelete = await request('/api/tracks', { cookie });
   assert.deepEqual(afterDelete.body, { tracks: [] });
+});
+
+test('track waveform endpoint returns PCM peak JSON for WAV audio', async () => {
+  const { cookie } = await registerUser('waveform@example.com');
+  const audio = makeWav16Mono([0, 32767, -32768, 16384]);
+
+  const upload = await request('/api/tracks', {
+    method: 'POST',
+    cookie,
+    headers: {
+      'Content-Type': 'audio/wav',
+      'X-File-Name': 'Waveform Track',
+      'X-Format': 'wav',
+      'X-Duration-Seconds': '0.001',
+    },
+    body: audio,
+  });
+
+  assert.equal(upload.response.status, 201);
+  assert.match(upload.body.track.waveformUrl, /^\/api\/tracks\//);
+
+  const waveform = await request(upload.body.track.waveformUrl, { cookie });
+  assert.equal(waveform.response.status, 200);
+  assert.equal(waveform.body.waveform.source, 'pcm');
+  assert.equal(waveform.body.waveform.format, 'wav');
+  assert.equal(waveform.body.waveform.peakCount, 4);
+  assert.deepEqual(waveform.body.waveform.peaks, [0, 1, 1, 0.5]);
+});
+
+test('async track export reports job completion and stores the exported audio', async () => {
+  const { cookie } = await registerUser('async-tracks@example.com');
+  const audio = Buffer.from([0x49, 0x44, 0x33, 1, 2, 3, 4]);
+
+  const accepted = await request('/api/tracks?async=1', {
+    method: 'POST',
+    cookie,
+    headers: {
+      'Content-Type': 'audio/mpeg',
+      'X-File-Name': 'Async Track',
+      'X-Format': 'mp3',
+      Prefer: 'respond-async',
+    },
+    body: audio,
+  });
+
+  assert.equal(accepted.response.status, 202);
+  assert.equal(accepted.body.job.status, 'processing');
+  assert.match(accepted.body.job.statusUrl, /^\/api\/tracks\/jobs\//);
+
+  const job = await pollExportJob(accepted.body.job, cookie);
+
+  assert.equal(job.status, 'completed');
+  assert.equal(job.error, null);
+  assert.equal(job.track.fileName, 'Async_Track_mastered.mp3');
+  assert.equal(job.track.sizeBytes, audio.length);
+
+  const download = await rawRequest(job.track.downloadUrl, { cookie });
+  assert.equal(download.status, 200);
+  assert.deepEqual(Buffer.from(await download.arrayBuffer()), audio);
+});
+
+test('async FLAC export encodes RouteNote-ready audio and Vorbis metadata', { skip: !hasFfmpeg() }, async () => {
+  const { cookie } = await registerUser('flac-metadata@example.com');
+  const audio = makeWav16Mono([0, 32767, -32768, 16384, 8192, -8192]);
+
+  const accepted = await request('/api/tracks?async=1', {
+    method: 'POST',
+    cookie,
+    headers: {
+      'Content-Type': 'audio/wav',
+      'X-File-Name': 'Metadata Track',
+      'X-Format': 'flac',
+      'X-Duration-Seconds': '0.001',
+      'X-Artist': 'Bryan Miller',
+      'X-Title': 'Final Final',
+      'X-Album': 'The Violence of Spring',
+      'X-Genre': 'Alternative Metal',
+      'X-Year': '2026',
+      'X-Comment': 'TrackMaster FLAC metadata test',
+      'X-Copyright': '© 2026 Bryan Miller',
+      Prefer: 'respond-async',
+    },
+    body: audio,
+  });
+
+  assert.equal(accepted.response.status, 202);
+  const job = await pollExportJob(accepted.body.job, cookie, { attempts: 100, delayMs: 50 });
+
+  assert.equal(job.status, 'completed');
+  assert.equal(job.error, null);
+  assert.equal(job.track.fileName, 'Metadata_Track_mastered.flac');
+  assert.equal(job.track.format, 'flac');
+  assert.match(job.track.waveformUrl, /^\/api\/tracks\//);
+
+  const download = await rawRequest(job.track.downloadUrl, { cookie });
+  assert.equal(download.status, 200);
+  assert.equal(download.headers.get('content-type'), 'audio/flac');
+
+  const flac = Buffer.from(await download.arrayBuffer());
+  assert.equal(flac.subarray(0, 4).toString('ascii'), 'fLaC');
+
+  const streamInfo = parseFlacStreamInfo(flac);
+  assert.equal(streamInfo.sampleRate, 44100);
+  assert.equal(streamInfo.channels, 2);
+  assert.equal(streamInfo.bitsPerSample, 16);
+
+  assert.ok(bufferIncludesUtf8(flac, 'artist=Bryan Miller'));
+  assert.ok(bufferIncludesUtf8(flac, 'title=Final Final'));
+  assert.ok(bufferIncludesUtf8(flac, 'album=The Violence of Spring'));
+  assert.ok(bufferIncludesUtf8(flac, 'genre=Alternative Metal'));
+  assert.ok(bufferIncludesUtf8(flac, 'date=2026'));
+  assert.ok(bufferIncludesAnyUtf8(flac, [
+    'comment=TrackMaster FLAC metadata test',
+    'COMMENT=TrackMaster FLAC metadata test',
+    'description=TrackMaster FLAC metadata test',
+    'DESCRIPTION=TrackMaster FLAC metadata test',
+  ]));
+  assert.ok(bufferIncludesUtf8(flac, 'copyright=© 2026 Bryan Miller'));
+  assert.ok(bufferIncludesUtf8(flac, 'encoded_by=TrackMaster v1.0'));
 });
 
 test('authenticated users cannot access each other presets or track exports', async () => {
@@ -327,6 +455,91 @@ async function registerUser(email) {
     token: response.body.token,
     user: response.body.user,
   };
+}
+
+async function pollExportJob(initialJob, cookie, options = {}) {
+  const attempts = options.attempts || 50;
+  const delayMs = options.delayMs || 20;
+  let job = initialJob;
+
+  for (let attempt = 0; attempt < attempts && job.status === 'processing'; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const status = await request(job.statusUrl, { cookie });
+    assert.equal(status.response.status, 200);
+    job = status.body.job;
+  }
+
+  return job;
+}
+
+function hasFfmpeg() {
+  const result = spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' });
+  return result.status === 0;
+}
+
+function parseFlacStreamInfo(buffer) {
+  assert.equal(buffer.subarray(0, 4).toString('ascii'), 'fLaC');
+  let offset = 4;
+
+  while (offset + 4 <= buffer.length) {
+    const header = buffer[offset];
+    const type = header & 0x7f;
+    const length = buffer.readUIntBE(offset + 1, 3);
+    const payloadStart = offset + 4;
+    const payloadEnd = payloadStart + length;
+    assert.ok(payloadEnd <= buffer.length, 'FLAC metadata block exceeds buffer size');
+
+    if (type === 0) {
+      const payload = buffer.subarray(payloadStart, payloadEnd);
+      assert.equal(payload.length, 34);
+      const packed = payload.readBigUInt64BE(10);
+      return {
+        sampleRate: Number((packed >> 44n) & 0xfffffn),
+        channels: Number(((packed >> 41n) & 0x7n) + 1n),
+        bitsPerSample: Number(((packed >> 36n) & 0x1fn) + 1n),
+      };
+    }
+
+    offset = payloadEnd;
+  }
+
+  throw new Error('FLAC STREAMINFO block not found');
+}
+
+function bufferIncludesUtf8(buffer, text) {
+  return buffer.includes(Buffer.from(text, 'utf8'));
+}
+
+function bufferIncludesAnyUtf8(buffer, values) {
+  return values.some((value) => bufferIncludesUtf8(buffer, value));
+}
+
+function makeWav16Mono(samples) {
+  const data = Buffer.alloc(samples.length * 2);
+  samples.forEach((sample, index) => data.writeInt16LE(sample, index * 2));
+
+  const fmtPayload = Buffer.alloc(16);
+  fmtPayload.writeUInt16LE(1, 0);
+  fmtPayload.writeUInt16LE(1, 2);
+  fmtPayload.writeUInt32LE(44100, 4);
+  fmtPayload.writeUInt32LE(88200, 8);
+  fmtPayload.writeUInt16LE(2, 12);
+  fmtPayload.writeUInt16LE(16, 14);
+
+  const body = Buffer.concat([makeChunk('fmt ', fmtPayload), makeChunk('data', data)]);
+  const header = Buffer.alloc(12);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(body.length + 4, 4);
+  header.write('WAVE', 8, 'ascii');
+  return Buffer.concat([header, body]);
+}
+
+function makeChunk(id, payload) {
+  const header = Buffer.alloc(8);
+  header.write(id, 0, 'ascii');
+  header.writeUInt32LE(payload.length, 4);
+  const padding = payload.length % 2 ? Buffer.from([0]) : Buffer.alloc(0);
+  return Buffer.concat([header, payload, padding]);
 }
 
 function presetParams() {

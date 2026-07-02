@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check scripts/validate-postgres-runtime.js && node --check scripts/generate-migration-readiness-report.js",
-    "test": "node test/config.test.js && node test/aibry-id-oidc.test.js && node test/server.runtime.test.js && node test/readiness-report.test.js && node test/api.integration.test.js && node test/repositories.test.js && node test/postgres.repositories.test.js",
+    "check": "node --check src/server.js && node --check src/wav-info.js && node --check src/waveform-peaks.js && node --check src/export-worker-pool.js && node --check src/track-export-worker.js && node --check scripts/validate-postgres-runtime.js && node --check scripts/generate-migration-readiness-report.js",
+    "test": "node test/config.test.js && node test/aibry-id-oidc.test.js && node test/wav-info.test.js && node test/waveform-peaks.test.js && node test/server.runtime.test.js && node test/readiness-report.test.js && node test/api.integration.test.js && node test/repositories.test.js && node test/postgres.repositories.test.js",
     "test:postgres": "node test/postgres.repositories.test.js",
     "test:postgres:api-imported": "node test/postgres.imported.api.test.js",
     "migrate:sqlite-to-postgres": "node scripts/sqlite-to-postgres.js",

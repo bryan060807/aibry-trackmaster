@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { audioBufferToWav, audioBufferToMp3 } from '../utils/exportUtils';
-import { uploadTrack } from '../lib/dataService';
+import { downloadTrack, uploadTrack, type ExportMetadata } from '../lib/dataService';
 
 export interface MasteringParams {
   eqLow: number;
@@ -387,7 +387,7 @@ export function useAudioEngine() {
     if (wasPlaying) void play();
   };
 
-  const exportTrack = async (format: 'wav' | 'mp3' = 'wav', bitrate: number = 320) => {
+  const exportTrack = async (format: 'wav' | 'mp3' | 'flac' = 'flac', bitrate: number = 320, metadata: ExportMetadata = {}) => {
     if (!audioBuffer) return;
     setIsExporting(true);
     try {
@@ -434,23 +434,37 @@ export function useAudioEngine() {
       source.start(0);
       const renderedBuffer = await offlineCtx.startRendering();
       
-      const blob = format === 'mp3' ? audioBufferToMp3(renderedBuffer, bitrate) : audioBufferToWav(renderedBuffer);
+      const blob = format === 'mp3' ? await audioBufferToMp3(renderedBuffer, bitrate) : audioBufferToWav(renderedBuffer);
       
-      const url = URL.createObjectURL(blob);
+      if (format !== 'flac') {
+        const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${fileName}_mastered.${format}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        URL.revokeObjectURL(url);
+      }
 
       try {
-        await uploadTrack(blob, {
+        const stored = await uploadTrack(blob, {
           fileName,
           format,
           durationSeconds: audioBuffer.duration,
+          metadata,
         });
+        if (format === 'flac') {
+          const encodedBlob = await downloadTrack(stored.track.id);
+          const url = URL.createObjectURL(encodedBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${fileName}_mastered.flac`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
         window.dispatchEvent(new CustomEvent('trackmaster:tracks-changed'));
       } catch (storageError) {
         console.warn("Local backup failed, but local download succeeded.", storageError);

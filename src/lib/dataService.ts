@@ -1,18 +1,20 @@
 import * as localApi from './api';
-import type { ApiPreset, TrackRecord } from './api';
+import type { ApiPreset, ExportMetadata, TrackRecord, TrackWaveform } from './api';
 import type { MasteringParams } from '../hooks/useAudioEngine';
 
-export type { ApiPreset, TrackRecord } from './api';
+export type { ApiPreset, ExportMetadata, TrackRecord, TrackWaveform } from './api';
 
 export interface UploadTrackOptions {
   fileName: string;
   format: string;
   durationSeconds: number;
+  metadata?: ExportMetadata;
 }
 
 export interface DataService {
   downloadTrack(id: string): Promise<Blob>;
   listTracks(): Promise<{ tracks: TrackRecord[] }>;
+  getTrackWaveform(track: TrackRecord): Promise<{ waveform: TrackWaveform }>;
   uploadTrack(blob: Blob, options: UploadTrackOptions): Promise<{ track: TrackRecord }>;
   deleteTrack(id: string): Promise<void>;
   listPresets(): Promise<{ presets: ApiPreset[] }>;
@@ -23,6 +25,7 @@ export interface DataService {
 const localDataService: DataService = {
   downloadTrack: localApi.downloadTrack,
   listTracks: localApi.listTracks,
+  getTrackWaveform: localApi.getTrackWaveform,
   uploadTrack: localApi.uploadTrack,
   deleteTrack: localApi.deleteTrack,
   listPresets: localApi.listPresets,
@@ -34,6 +37,7 @@ export const dataService: DataService = localDataService;
 
 export const downloadTrack = dataService.downloadTrack;
 export const listTracks = dataService.listTracks;
+export const getTrackWaveform = dataService.getTrackWaveform;
 export const uploadTrack = dataService.uploadTrack;
 export const deleteTrack = dataService.deleteTrack;
 export const listPresets = dataService.listPresets;

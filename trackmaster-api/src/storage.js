@@ -13,7 +13,7 @@ export function safeBaseName(value) {
 
 export function safeFormat(value) {
   const format = String(value || '').toLowerCase();
-  if (format === 'wav' || format === 'mp3') return format;
+  if (format === 'wav' || format === 'mp3' || format === 'flac') return format;
   return '';
 }
 

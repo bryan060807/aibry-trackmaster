@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, Clock, Music, Loader2, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { deleteTrack, downloadTrack, listTracks, TrackRecord } from '../lib/dataService';
+import { TrackWaveform } from './TrackWaveform';
 
 export function History({ accentClass }: { accentClass: string }) {
   const [history, setHistory] = useState<TrackRecord[]>([]);
@@ -22,7 +23,7 @@ export function History({ accentClass }: { accentClass: string }) {
       setHistory(tracks);
       setError(null);
     } catch (err) {
-      console.error("Failed to fetch local mastering logs", err);
+      console.error('Failed to fetch local mastering logs', err);
       setError('Local logs are unavailable until the garage API is running.');
     } finally {
       setLoading(false);
@@ -43,7 +44,7 @@ export function History({ accentClass }: { accentClass: string }) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       } catch (err) {
-        console.error("Download failed", err);
+        console.error('Download failed', err);
         setError('Download is unavailable for this local track.');
       } finally {
         setProcessingId(null);
@@ -59,8 +60,8 @@ export function History({ accentClass }: { accentClass: string }) {
       await deleteTrack(track.id);
       setHistory(prev => prev.filter(t => t.id !== track.id));
     } catch (err) {
-      console.error("Deletion failed", err);
-      alert("Failed to delete track");
+      console.error('Deletion failed', err);
+      alert('Failed to delete track');
     } finally {
       setProcessingId(null);
     }
@@ -90,46 +91,55 @@ export function History({ accentClass }: { accentClass: string }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-black/40 border border-zinc-800/50 p-3 rounded-sm flex items-center justify-between group hover:border-zinc-700/50 transition-colors"
+            className="bg-black/40 border border-zinc-800/50 p-3 rounded-sm group hover:border-zinc-700/50 transition-colors"
           >
-            <div className="flex items-center gap-3 overflow-hidden">
-              <Music size={14} className={`${accentClass} opacity-50 group-hover:opacity-100 transition-opacity`} />
-              <div className="overflow-hidden">
-                <p className="text-[10px] font-mono font-bold text-zinc-300 truncate max-w-[120px] uppercase tracking-wider">
-                  {track.fileName}
-                </p>
-                <div className="flex items-center gap-2 opacity-40">
-                  <Clock size={10} />
-                  <span className="text-[8px] font-mono">
-                    {new Date(track.createdAt).toLocaleDateString()}
-                  </span>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+                <Music size={14} className={`${accentClass} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                <div className="min-w-0 overflow-hidden">
+                  <p className="text-[10px] font-mono font-bold text-zinc-300 truncate max-w-[190px] uppercase tracking-wider">
+                    {track.fileName}
+                  </p>
+                  <div className="flex items-center gap-2 opacity-40">
+                    <Clock size={10} />
+                    <span className="text-[8px] font-mono">
+                      {new Date(track.createdAt).toLocaleDateString()}
+                    </span>
+                    {track.format && (
+                      <span className="text-[8px] font-mono uppercase">
+                        {track.format}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={() => downloadFile(track)}
-                disabled={!!processingId}
-                className="p-2 hover:bg-zinc-800 rounded-sm transition-all group/btn"
-                title="Download"
-              >
-                {processingId === track.id ? (
-                  <Loader2 size={14} className={`animate-spin ${accentClass}`} />
-                ) : (
-                  <Download size={14} className="text-zinc-500 group-hover/btn:text-zinc-200" />
-                )}
-              </button>
+              
+              <div className="flex shrink-0 items-center gap-1">
+                <button 
+                  onClick={() => downloadFile(track)}
+                  disabled={!!processingId}
+                  className="p-2 hover:bg-zinc-800 rounded-sm transition-all group/btn"
+                  title="Download"
+                >
+                  {processingId === track.id ? (
+                    <Loader2 size={14} className={`animate-spin ${accentClass}`} />
+                  ) : (
+                    <Download size={14} className="text-zinc-500 group-hover/btn:text-zinc-200" />
+                  )}
+                </button>
 
-              <button 
-                onClick={() => handleDeleteTrack(track)}
-                disabled={!!processingId}
-                className="p-2 hover:bg-red-500/10 rounded-sm transition-all group/trash"
-                title="Delete from local storage"
-              >
-                <Trash2 size={14} className="text-zinc-600 group-hover/trash:text-red-500" />
-              </button>
+                <button 
+                  onClick={() => handleDeleteTrack(track)}
+                  disabled={!!processingId}
+                  className="p-2 hover:bg-red-500/10 rounded-sm transition-all group/trash"
+                  title="Delete from local storage"
+                >
+                  <Trash2 size={14} className="text-zinc-600 group-hover/trash:text-red-500" />
+                </button>
+              </div>
             </div>
+
+            <TrackWaveform track={track} accentClass={accentClass} />
           </motion.div>
         ))}
       </AnimatePresence>
