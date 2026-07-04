@@ -493,6 +493,8 @@ export function useAudioEngine() {
   const [meters, setMeters] = useState<MasteringMeters>(DEFAULT_METERS);
   const [lastAnalysis, setLastAnalysis] = useState<MasteringAnalysis | null>(null);
   const [lastComparatorNotes, setLastComparatorNotes] = useState<string>('');
+  const [lastExportBlob, setLastExportBlob] = useState<Blob | null>(null);
+  const [lastExportFileName, setLastExportFileName] = useState<string>('');
   const [bypasses, setBypasses] = useState<MasteringBypasses>(DEFAULT_BYPASSES);
   const [queue, setQueue] = useState<File[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
@@ -884,6 +886,8 @@ export function useAudioEngine() {
 
       const extension = format;
       const safeFileName = `${fileName}_mastered.${extension}`;
+      setLastExportBlob(uploadBlob);
+      setLastExportFileName(safeFileName);
       const enrichedMetadata: ExportMetadata = {
         ...metadata,
         comment: [
@@ -928,6 +932,8 @@ export function useAudioEngine() {
     meters,
     lastAnalysis,
     lastComparatorNotes,
+    lastExportBlob,
+    lastExportFileName,
     analyser: graphRef.current?.analyser || null,
     audioReady: Boolean(audioContext),
     hasAudio: Boolean(audioBuffer),

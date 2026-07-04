@@ -10,6 +10,7 @@ import { PresetManager } from './components/PresetManager';
 import { ExportModal } from './components/ExportModal';
 import { GuideDrawer, type GuideTopic } from './components/GuideDrawer';
 import { History } from './components/History';
+import { IntegratedComparator } from './components/IntegratedComparator';
 import { AuthStatus } from './components/AuthStatus';
 import { AuthScreen } from './components/AuthScreen';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
@@ -59,7 +60,7 @@ export default function App() {
   const {
     play, pause, stop, seek, exportTrack, addToQueue, removeFromQueue,
     isPlaying, currentTime, duration, params, setParams, bypasses, toggleBypass, resetModule, analyser,
-    audioReady, hasAudio, isExporting, queue, currentIndex, audioError, meters, lastAnalysis, lastComparatorNotes
+    audioReady, hasAudio, isExporting, queue, currentIndex, audioError, meters, lastAnalysis, lastComparatorNotes, lastExportBlob, lastExportFileName
   } = useAudioEngine();
 
   const [accent, setAccent] = useState(getInitialTheme);
@@ -566,6 +567,15 @@ export default function App() {
             </div>
           </div>
         </div>
+
+        <IntegratedComparator
+          sourceFile={currentIndex >= 0 ? queue[currentIndex] : null}
+          masteredBlob={lastExportBlob}
+          masteredFileName={lastExportFileName}
+          notes={lastComparatorNotes}
+          accentClass={accent.class}
+          accentBg={accent.bg}
+        />
 
         {/* 4. PROCESSING UNITS (6) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
