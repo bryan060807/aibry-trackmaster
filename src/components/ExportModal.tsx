@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Download, Music, FileAudio } from 'lucide-react';
 import type { ExportMetadata } from '../lib/dataService';
+import { buildComparatorHandoffUrl } from '../utils/comparatorHandoff';
 
 export type ExportFormat = 'wav' | 'mp3' | 'flac';
 
@@ -112,7 +113,7 @@ export function ExportModal({ isOpen, onClose, onExport, accentBg, accentClass, 
                 </div>
                 <div className="flex gap-2">
                   <button onClick={copyComparatorNotes} className="px-3 py-1.5 rounded-sm border border-zinc-700 bg-zinc-900 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-300 hover:text-zinc-100">Copy Notes</button>
-                  <a href="https://comparator.aibry.shop/" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-sm border border-zinc-700 bg-zinc-900 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-300 hover:text-zinc-100">Open Comparator</a>
+                  <a href={buildComparatorHandoffUrl(comparatorNotes)} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-sm border border-zinc-700 bg-zinc-900 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-300 hover:text-zinc-100">Send to Comparator</a>
                 </div>
               </div>
               <pre className="max-h-32 overflow-y-auto custom-scrollbar whitespace-pre-wrap text-[10px] font-mono text-zinc-500 leading-relaxed">{comparatorNotes}</pre>
