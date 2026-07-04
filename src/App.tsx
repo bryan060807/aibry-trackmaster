@@ -8,6 +8,7 @@ import { useAudioEngine } from './hooks/useAudioEngine';
 import { Visualizer } from './components/Visualizer';
 import { PresetManager } from './components/PresetManager';
 import { ExportModal } from './components/ExportModal';
+import { GuideDrawer, type GuideTopic } from './components/GuideDrawer';
 import { History } from './components/History';
 import { AuthStatus } from './components/AuthStatus';
 import { AuthScreen } from './components/AuthScreen';
@@ -64,6 +65,8 @@ export default function App() {
   const [accent, setAccent] = useState(getInitialTheme);
   const [showExportModal, setShowExportModal] = useState(false);
   const [helpMode, setHelpMode] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideTopic, setGuideTopic] = useState<GuideTopic>('quick-start');
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -223,6 +226,15 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <GuideDrawer
+        open={showGuide}
+        topic={guideTopic}
+        onTopicChange={setGuideTopic}
+        onClose={() => setShowGuide(false)}
+        accentClass={accent.class}
+        accentBg={accent.bg}
+      />
+
       {/* 2. HEADER */}
       <header className="border-b-4 border-zinc-900 bg-[#1a1a1a] sticky top-0 z-50 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -243,6 +255,17 @@ export default function App() {
               />
             </div>
             <PresetManager currentParams={params} onLoadPreset={setParams} accentClass={accent.class} accentBg={accent.bg} />
+            <button
+              onClick={() => {
+                setGuideTopic('quick-start');
+                setShowGuide(true);
+              }}
+              className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-full border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white font-mono text-[10px] uppercase tracking-widest transition-all"
+              title="Open the TrackMaster guide"
+            >
+              <HelpCircle size={14} />
+              Guide
+            </button>
             <div className="hidden md:flex gap-2 bg-zinc-900 rounded-full p-1 border border-zinc-800" aria-label="Theme selector">
               {THEMES.map(t => (
                 <button
@@ -299,7 +322,18 @@ export default function App() {
             <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
             <div className="flex justify-between items-center mb-4 z-10 px-2 pt-1">
               <h2 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14} /> Mastering Lab</h2>
-              {hasAudio && <div className="font-mono text-[10px] text-zinc-400 bg-black border border-zinc-800 px-2 py-1 rounded-sm">{formatTime(currentTime)} / {formatTime(duration)}</div>}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setGuideTopic('module-reference');
+                    setShowGuide(true);
+                  }}
+                  className="font-mono text-[9px] uppercase tracking-widest text-zinc-500 hover:text-zinc-100 border border-zinc-800 bg-black px-2 py-1 rounded-sm"
+                >
+                  Guide
+                </button>
+                {hasAudio && <div className="font-mono text-[10px] text-zinc-400 bg-black border border-zinc-800 px-2 py-1 rounded-sm">{formatTime(currentTime)} / {formatTime(duration)}</div>}
+              </div>
             </div>
             <div className="flex-1 bg-black border-2 border-zinc-900 rounded-sm p-1 overflow-hidden shadow-inner">
                <Visualizer analyser={analyser} isPlaying={isPlaying} accentColor={accent.value} hasAudio={hasAudio} />
@@ -377,7 +411,15 @@ export default function App() {
             <div className="mt-3 bg-black border border-zinc-800 rounded-sm px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
               <div className="flex items-center justify-between gap-3">
                 <span>Loudness Targets</span>
-                <span className={accent.class}>Guide</span>
+                <button
+                  onClick={() => {
+                    setGuideTopic('clean-streaming');
+                    setShowGuide(true);
+                  }}
+                  className={`${accent.class} hover:text-white`}
+                >
+                  Guide
+                </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[10px]">
                 <span>Clean Streaming: -12 to -10 LUFS</span>
@@ -463,6 +505,26 @@ export default function App() {
             <div className="rack-panel p-5 flex flex-col relative overflow-hidden min-h-[18rem]">
               <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
               <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2"><ShieldCheck size={12} className={accent.class} /><h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase">Mastering Status</h3></div>
+              <div className="grid grid-cols-2 gap-2 mb-4 font-mono text-[9px] uppercase tracking-widest">
+                <button
+                  onClick={() => {
+                    setGuideTopic('export-compare');
+                    setShowGuide(true);
+                  }}
+                  className="bg-black border border-zinc-800 rounded-sm px-3 py-2 text-zinc-500 hover:text-zinc-100"
+                >
+                  Export Guide
+                </button>
+                <button
+                  onClick={() => {
+                    setGuideTopic('quick-start');
+                    setShowGuide(true);
+                  }}
+                  className="bg-black border border-zinc-800 rounded-sm px-3 py-2 text-zinc-500 hover:text-zinc-100"
+                >
+                  Quick Start
+                </button>
+              </div>
               <div className="space-y-3 font-mono text-[10px] uppercase tracking-widest">
                 <div className="bg-black border border-zinc-800 rounded-sm px-3 py-2 flex items-center justify-between gap-3">
                   <span className="text-zinc-600">Audio Loaded</span>
@@ -480,6 +542,26 @@ export default function App() {
                   <span className="text-zinc-600">Comparator Notes</span>
                   <span className={lastComparatorNotes ? accent.class : 'text-zinc-600'}>{lastComparatorNotes ? 'Ready' : 'After Export'}</span>
                 </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-2 font-mono text-[9px] uppercase tracking-widest">
+                <button
+                  onClick={() => {
+                    setGuideTopic(hasAudio ? 'listening-checklist' : 'quick-start');
+                    setShowGuide(true);
+                  }}
+                  className="bg-black border border-zinc-800 rounded-sm px-3 py-2 text-zinc-500 hover:text-zinc-100 transition-colors"
+                >
+                  {hasAudio ? 'Listening Check' : 'Quick Start'}
+                </button>
+                <button
+                  onClick={() => {
+                    setGuideTopic(lastAnalysis ? 'export-compare' : 'clean-streaming');
+                    setShowGuide(true);
+                  }}
+                  className="bg-black border border-zinc-800 rounded-sm px-3 py-2 text-zinc-500 hover:text-zinc-100 transition-colors"
+                >
+                  {lastAnalysis ? 'Compare Export' : 'Clean Master'}
+                </button>
               </div>
             </div>
           </div>
