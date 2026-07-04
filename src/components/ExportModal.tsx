@@ -12,6 +12,7 @@ interface ExportModalProps {
   accentClass: string;
   isExporting: boolean;
   canExport: boolean;
+  comparatorNotes?: string;
 }
 
 const METADATA_FIELDS: Array<{ key: keyof ExportMetadata; label: string; placeholder: string }> = [
@@ -24,7 +25,7 @@ const METADATA_FIELDS: Array<{ key: keyof ExportMetadata; label: string; placeho
   { key: 'copyright', label: 'Copyright', placeholder: '© 2026 Your Name' },
 ];
 
-export function ExportModal({ isOpen, onClose, onExport, accentBg, accentClass, isExporting, canExport }: ExportModalProps) {
+export function ExportModal({ isOpen, onClose, onExport, accentBg, accentClass, isExporting, canExport, comparatorNotes }: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>('flac');
   const [bitrate, setBitrate] = useState<number>(320);
   const [metadata, setMetadata] = useState<ExportMetadata>({});
@@ -33,6 +34,13 @@ export function ExportModal({ isOpen, onClose, onExport, accentBg, accentClass, 
 
   const updateMetadata = (key: keyof ExportMetadata, value: string) => {
     setMetadata(prev => ({ ...prev, [key]: value }));
+  };
+
+  const copyComparatorNotes = async () => {
+    if (!comparatorNotes) return;
+    await navigator.clipboard?.writeText(comparatorNotes).catch((err) => {
+      console.warn('Could not copy comparator notes', err);
+    });
   };
 
   return (
@@ -92,6 +100,22 @@ export function ExportModal({ isOpen, onClose, onExport, accentBg, accentClass, 
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {comparatorNotes && (
+            <div className="space-y-3 border border-zinc-800 bg-black rounded-sm p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-[10px] font-bold font-mono uppercase tracking-widest ${accentClass}`}>Comparator Handoff</p>
+                  <p className="text-[9px] font-mono uppercase tracking-wider text-zinc-600 mt-1">Last render notes are ready to paste into TrackMaster Comparator.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={copyComparatorNotes} className="px-3 py-1.5 rounded-sm border border-zinc-700 bg-zinc-900 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-300 hover:text-zinc-100">Copy Notes</button>
+                  <a href="https://comparator.aibry.shop/" target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded-sm border border-zinc-700 bg-zinc-900 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-300 hover:text-zinc-100">Open Comparator</a>
+                </div>
+              </div>
+              <pre className="max-h-32 overflow-y-auto custom-scrollbar whitespace-pre-wrap text-[10px] font-mono text-zinc-500 leading-relaxed">{comparatorNotes}</pre>
             </div>
           )}
 

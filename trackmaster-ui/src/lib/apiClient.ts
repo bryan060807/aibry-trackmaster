@@ -111,7 +111,7 @@ export async function uploadTrack(blob: Blob, options: { fileName: string; forma
   ];
 
   for (const [key, header] of metadataHeaders) {
-    const value = options.metadata?.[key]?.trim();
+    const value = options.metadata?.[key]?.trim().replace(/[\r\n]+/g, ' | ');
     if (value) headers[header] = value;
   }
 

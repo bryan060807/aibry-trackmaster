@@ -43,6 +43,11 @@ function formatTime(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function formatDb(value: number) {
+  if (!Number.isFinite(value)) return '-∞ dB';
+  return `${value.toFixed(1)} dB`;
+}
+
 const RackScrew = ({ className }: { className?: string }) => (
   <div className={`absolute w-2.5 h-2.5 rounded-full rack-screw flex items-center justify-center ${className}`}>
     <div className="w-full h-[1px] bg-black/50 rotate-45"></div>
@@ -52,8 +57,8 @@ const RackScrew = ({ className }: { className?: string }) => (
 export default function App() {
   const {
     play, pause, stop, seek, exportTrack, addToQueue, removeFromQueue,
-    isPlaying, currentTime, duration, params, setParams, analyser,
-    audioReady, hasAudio, isExporting, queue, currentIndex, audioError
+    isPlaying, currentTime, duration, params, setParams, bypasses, toggleBypass, resetModule, analyser,
+    audioReady, hasAudio, isExporting, queue, currentIndex, audioError, meters, lastAnalysis, lastComparatorNotes
   } = useAudioEngine();
 
   const [accent, setAccent] = useState(getInitialTheme);
@@ -95,6 +100,17 @@ export default function App() {
       console.warn('Failed to persist TrackMaster theme', err);
     }
   };
+
+  const masteringModules = [
+    { key: 'eq', label: 'EQ' },
+    { key: 'dynamics', label: 'Dynamics' },
+    { key: 'saturation', label: 'Saturation' },
+    { key: 'delay', label: 'Delay' },
+    { key: 'reverb', label: 'Reverb' },
+    { key: 'softClipper', label: 'Soft Clip' },
+    { key: 'stereo', label: 'Stereo / Low Mono' },
+    { key: 'limiter', label: 'Limiter' },
+  ] as const;
 
   useEffect(() => {
     let active = true;
@@ -195,7 +211,7 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-[11px] leading-relaxed">
                 <div className="space-y-4">
                   <p className="text-zinc-300"><span className={accent.class}>[ 01 ] SIGNAL FLOW:</span> Left-to-right processing. EQ/Comp first, then Saturation, followed by Spatial Delay/Reverb.</p>
-                  <p className="text-zinc-300"><span className={accent.class}>[ 02 ] THE LIMITER:</span> Fixed ceiling at -0.1dB. Use 'Makeup Gain' in the Output panel to drive loudness.</p>
+                  <p className="text-zinc-300"><span className={accent.class}>[ 02 ] THE LIMITER:</span> Default ceiling is -1.0 dB for safer exports. Use input/output gain and soft clipping before pushing makeup gain.</p>
                 </div>
                 <div className="space-y-4 text-zinc-300">
                   <p><span className={accent.class}>[ 03 ] LOGS & SYNC:</span> Mastered files and presets are stored on the local garage server.</p>
@@ -272,21 +288,120 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6 flex-grow">
         {audioError && (
           <div className="rack-panel border border-red-500/30 bg-red-500/10 p-4 font-mono text-xs text-red-100">
-            <p className="font-bold uppercase tracking-widest">Audio_Engine_Unavailable</p>
+            <p className="font-bold uppercase tracking-widest">TrackMaster_Status</p>
             <p className="mt-2 text-[10px] uppercase tracking-wider text-red-100/70">{audioError}</p>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* SPECTRUM ANALYSIS */}
-          <div className="lg:col-span-2 h-96 rack-panel p-4 flex flex-col relative overflow-hidden">
+          <div className="lg:col-span-2 min-h-[50rem] rack-panel p-4 flex flex-col relative overflow-hidden">
             <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
             <div className="flex justify-between items-center mb-4 z-10 px-2 pt-1">
-              <h2 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14} /> Spectrum Analysis</h2>
+              <h2 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14} /> Mastering Lab</h2>
               {hasAudio && <div className="font-mono text-[10px] text-zinc-400 bg-black border border-zinc-800 px-2 py-1 rounded-sm">{formatTime(currentTime)} / {formatTime(duration)}</div>}
             </div>
             <div className="flex-1 bg-black border-2 border-zinc-900 rounded-sm p-1 overflow-hidden shadow-inner">
                <Visualizer analyser={analyser} isPlaying={isPlaying} accentColor={accent.value} hasAudio={hasAudio} />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+              <span>Live Metering</span>
+              <span>Export analysis appears after render</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 font-mono text-[10px] uppercase tracking-wider">
+              <div className="bg-black border border-zinc-800 rounded-sm px-2 py-2">
+                <p className="text-zinc-600">Peak</p>
+                <p className={meters.clipping ? 'text-red-400 font-bold' : accent.class}>{formatDb(meters.peakDb)}</p>
+              </div>
+              <div className="bg-black border border-zinc-800 rounded-sm px-2 py-2">
+                <p className="text-zinc-600">RMS</p>
+                <p className="text-zinc-300">{formatDb(meters.rmsDb)}</p>
+              </div>
+              <div className="bg-black border border-zinc-800 rounded-sm px-2 py-2">
+                <p className="text-zinc-600">Gain Reduction</p>
+                <p className="text-zinc-300">{formatDb(meters.gainReductionDb)}</p>
+              </div>
+              <div className="bg-black border border-zinc-800 rounded-sm px-2 py-2">
+                <p className="text-zinc-600">Limiter Ceiling</p>
+                <p className="text-zinc-300">{formatDb(meters.limiterCeilingDb)}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600">
+              <span>Mastering Controls</span>
+              <span>Neutral defaults are safe</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2 font-mono text-[9px] uppercase tracking-widest">
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Input Gain</span><span>{params.inputGain.toFixed(1)} dB</span></span>
+                <input type="range" min={-12} max={12} step={0.1} value={params.inputGain} onChange={(event) => handleParamChange('inputGain', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Soft Clip</span><span>{params.softClipperAmount.toFixed(2)}</span></span>
+                <input type="range" min={0} max={1} step={0.01} value={params.softClipperAmount} onChange={(event) => handleParamChange('softClipperAmount', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Stereo Width</span><span>{params.stereoWidth.toFixed(2)}</span></span>
+                <input type="range" min={0.5} max={1.5} step={0.01} value={params.stereoWidth} onChange={(event) => handleParamChange('stereoWidth', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Low Mono</span><span>{Math.round(params.lowMonoAmount * 100)}%</span></span>
+                <input type="range" min={0} max={1} step={0.01} value={params.lowMonoAmount} onChange={(event) => handleParamChange('lowMonoAmount', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Mono Below</span><span>{params.lowMonoFrequency.toFixed(0)} Hz</span></span>
+                <input type="range" min={60} max={250} step={1} value={params.lowMonoFrequency} onChange={(event) => handleParamChange('lowMonoFrequency', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Output Gain</span><span>{params.outputGain.toFixed(1)} dB</span></span>
+                <input type="range" min={-12} max={12} step={0.1} value={params.outputGain} onChange={(event) => handleParamChange('outputGain', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+              <label className="bg-black border border-zinc-800 rounded-sm px-2 py-2 space-y-1">
+                <span className="flex justify-between text-zinc-500"><span>Ceiling</span><span>{params.limiterCeiling.toFixed(1)} dB</span></span>
+                <input type="range" min={-2} max={-0.3} step={0.1} value={params.limiterCeiling} onChange={(event) => handleParamChange('limiterCeiling', parseFloat(event.target.value))} className="w-full fader" />
+              </label>
+            </div>
+            {lastAnalysis && (
+              <div className="mt-3 bg-black border border-zinc-800 rounded-sm px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center justify-between gap-3">
+                  <span>Last Export Analysis</span>
+                  <span className={lastAnalysis.clipping ? 'text-red-400 font-bold' : accent.class}>{lastAnalysis.clipping ? 'Check Peaks' : 'Clean'}</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-[10px]">
+                  <span>Peak {formatDb(lastAnalysis.peakDb)}</span>
+                  <span>True Peak Est {formatDb(lastAnalysis.truePeakDb)}</span>
+                  <span>Int LUFS Est {formatDb(lastAnalysis.integratedLufs)}</span>
+                  <span>Clip Samples {lastAnalysis.clippingSamples}</span>
+                </div>
+              </div>
+            )}
+            <div className="mt-3 bg-black border border-zinc-800 rounded-sm px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+              <div className="flex items-center justify-between gap-3">
+                <span>Loudness Targets</span>
+                <span className={accent.class}>Guide</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[10px]">
+                <span>Clean Streaming: -12 to -10 LUFS</span>
+                <span>Aggressive Loud: -9 to -7 LUFS</span>
+                <span>Safe Ceiling: -1.0 dBTP</span>
+                <span>Hot Ceiling: -0.5 / -0.3 dBTP</span>
+              </div>
+            </div>
+            <div className="mt-3 bg-black border border-zinc-800 rounded-sm px-3 py-2 font-mono text-[9px] uppercase tracking-widest">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <span className="text-zinc-500">Module Bypass / Reset</span>
+                <span className="text-zinc-700">Session Only</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {masteringModules.map(module => (
+                  <div key={module.key} className="flex items-center justify-between gap-2 border border-zinc-900 bg-zinc-950 rounded-sm px-2 py-1.5">
+                    <span className={bypasses[module.key] ? 'text-zinc-500 line-through' : 'text-zinc-300'}>{module.label}</span>
+                    <div className="flex gap-1">
+                      <button onClick={() => toggleBypass(module.key)} className={`px-2 py-1 rounded-sm border text-[8px] font-bold uppercase ${bypasses[module.key] ? 'border-red-500/40 text-red-300 bg-red-500/10' : 'border-zinc-800 text-zinc-500 hover:text-zinc-300'}`}>{bypasses[module.key] ? 'Bypassed' : 'Bypass'}</button>
+                      <button onClick={() => resetModule(module.key)} className="px-2 py-1 rounded-sm border border-zinc-800 text-[8px] font-bold uppercase text-zinc-500 hover:text-zinc-300">Reset</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -339,10 +454,34 @@ export default function App() {
           </div>
 
           {/* MASTERING LOGS */}
-          <div className="h-96 rack-panel p-5 flex flex-col relative overflow-hidden">
-            <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
-            <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2"><Clock size={12} className={accent.class} /><h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase">Mastering Logs</h3></div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar"><History accentClass={accent.class} /></div>
+          <div className="space-y-6">
+            <div className="h-96 rack-panel p-5 flex flex-col relative overflow-hidden">
+              <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
+              <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2"><Clock size={12} className={accent.class} /><h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase">Mastering Logs</h3></div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar"><History accentClass={accent.class} /></div>
+            </div>
+            <div className="rack-panel p-5 flex flex-col relative overflow-hidden min-h-[18rem]">
+              <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
+              <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2"><ShieldCheck size={12} className={accent.class} /><h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase">Mastering Status</h3></div>
+              <div className="space-y-3 font-mono text-[10px] uppercase tracking-widest">
+                <div className="bg-black border border-zinc-800 rounded-sm px-3 py-2 flex items-center justify-between gap-3">
+                  <span className="text-zinc-600">Audio Loaded</span>
+                  <span className={hasAudio ? accent.class : 'text-zinc-600'}>{hasAudio ? 'Ready' : 'Waiting'}</span>
+                </div>
+                <div className="bg-black border border-zinc-800 rounded-sm px-3 py-2 flex items-center justify-between gap-3">
+                  <span className="text-zinc-600">Export Chain</span>
+                  <span className={accent.class}>Live/Offline Matched</span>
+                </div>
+                <div className="bg-black border border-zinc-800 rounded-sm px-3 py-2 flex items-center justify-between gap-3">
+                  <span className="text-zinc-600">Analysis</span>
+                  <span className={lastAnalysis ? accent.class : 'text-zinc-600'}>{lastAnalysis ? 'Rendered' : 'After Export'}</span>
+                </div>
+                <div className="bg-black border border-zinc-800 rounded-sm px-3 py-2 flex items-center justify-between gap-3">
+                  <span className="text-zinc-600">Comparator Notes</span>
+                  <span className={lastComparatorNotes ? accent.class : 'text-zinc-600'}>{lastComparatorNotes ? 'Ready' : 'After Export'}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -401,6 +540,7 @@ export default function App() {
       </footer>
 
       <ExportModal
+        comparatorNotes={lastComparatorNotes}
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
         onExport={(format, bitrate, metadata) => {
