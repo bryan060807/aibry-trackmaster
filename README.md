@@ -79,9 +79,17 @@ The Vite dev server proxies `/api` to `http://127.0.0.1:3004`.
 
 ```bash
 npm run lint
+npm run test:comparator
 npm run build
 npm audit --audit-level=high
 ```
+
+The comparator test covers the pure A/B timing contract: shortest-deck duration,
+nudge bounds, and the drift-correction threshold. Web Audio playback still
+requires a browser smoke check: load a source, export a master, start playback,
+change Nudge B, confirm both decks stop when either ends, and confirm a blocked
+or undecodable play attempt shows the comparator alert and leaves both decks
+paused.
 
 Windows readiness helpers remain available from the root workspace:
 

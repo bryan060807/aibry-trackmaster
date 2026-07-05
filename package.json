@@ -29,6 +29,7 @@
     "pm2:windows-readiness:status": "pm2 status trackmaster-windows-readiness-api",
     "pm2:windows-readiness:logs": "pm2 logs trackmaster-windows-readiness-api --lines 80",
     "build": "vite build",
+    "test:comparator": "node src/components/integratedComparatorModel.test.js",
     "preview": "vite preview",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit && npm run check:api",

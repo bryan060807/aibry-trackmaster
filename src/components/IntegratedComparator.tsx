@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Headphones, Pause, Play, Repeat, RotateCcw } from 'lucide-react';
+import {
+  clamp,
+  getComparableDuration,
+  getSyncedDeckTime,
+  shouldCorrectDeckDrift,
+} from './integratedComparatorModel';
 
 type CompareMode = 'A' | 'B' | 'blend' | 'diff';
 
@@ -26,10 +32,6 @@ type AudioGraph = {
 
 const DEFAULT_TRIM = 0.8;
 const DIFF_GAIN = 0.35;
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
 
 function equalPowerA(amount: number) {
   return Math.cos(clamp(amount, 0, 1) * Math.PI / 2);
@@ -91,6 +93,7 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
   const [duration, setDuration] = useState(0);
   const [rms, setRms] = useState<Record<Deck, number | null>>({ A: null, B: null });
   const [meter, setMeter] = useState({ peak: 0, rms: 0, clipped: false });
+  const [playbackError, setPlaybackError] = useState('');
 
   const sourceUrl = useMemo(() => sourceFile ? URL.createObjectURL(sourceFile) : '', [sourceFile]);
   const masteredUrl = useMemo(() => masteredBlob ? URL.createObjectURL(masteredBlob) : '', [masteredBlob]);
@@ -125,20 +128,45 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
     const audioB = audioBRef.current;
     if (!audioA || !audioB) return;
 
+    setIsPlaying(false);
+    setPlaybackError('');
+    setCurrentTime(0);
+    setDuration(0);
+    setLoopStart(0);
+    setLoopEnd(null);
+
     const updateDuration = () => {
-      const durations = [audioA.duration, audioB.duration].filter(Number.isFinite);
-      const nextDuration = durations.length > 0 ? Math.min(...durations) : 0;
+      const nextDuration = getComparableDuration(audioA.duration, audioB.duration);
       setDuration(nextDuration);
       setLoopEnd(previous => previous === null && nextDuration > 0 ? nextDuration : previous);
+    };
+    const stopPlayback = () => {
+      audioA.pause();
+      audioB.pause();
+      setIsPlaying(false);
+    };
+    const handlePlaybackError = () => {
+      if (!ready) return;
+      stopPlayback();
+      setPlaybackError('Comparator playback failed. Re-export the master or reload the source track.');
     };
 
     audioA.addEventListener('loadedmetadata', updateDuration);
     audioB.addEventListener('loadedmetadata', updateDuration);
+    audioA.addEventListener('ended', stopPlayback);
+    audioB.addEventListener('ended', stopPlayback);
+    audioA.addEventListener('error', handlePlaybackError);
+    audioB.addEventListener('error', handlePlaybackError);
     updateDuration();
 
     return () => {
+      stopPlayback();
       audioA.removeEventListener('loadedmetadata', updateDuration);
       audioB.removeEventListener('loadedmetadata', updateDuration);
+      audioA.removeEventListener('ended', stopPlayback);
+      audioB.removeEventListener('ended', stopPlayback);
+      audioA.removeEventListener('error', handlePlaybackError);
+      audioB.removeEventListener('error', handlePlaybackError);
     };
   }, [sourceUrl, masteredUrl]);
 
@@ -220,6 +248,13 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
       const timeline = audioA?.currentTime ?? 0;
       setCurrentTime(timeline);
 
+      if (isPlaying && audioA && audioB) {
+        const expectedBTime = getSyncedDeckTime(timeline, nudgeB, audioB.duration);
+        if (shouldCorrectDeckDrift(audioB.currentTime, expectedBTime)) {
+          audioB.currentTime = expectedBTime;
+        }
+      }
+
       if (looping && audioA && audioB) {
         const effectiveLoopEnd = loopEnd ?? duration;
         if (effectiveLoopEnd > loopStart && timeline >= effectiveLoopEnd) {
@@ -236,15 +271,15 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
     return () => {
       if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
     };
-  }, [duration, looping, loopEnd, loopStart, nudgeB, ready]);
+  }, [duration, isPlaying, looping, loopEnd, loopStart, nudgeB, ready]);
 
   const syncDecks = (time = audioARef.current?.currentTime ?? 0) => {
     const audioA = audioARef.current;
     const audioB = audioBRef.current;
     if (!audioA || !audioB) return;
-    const safeTime = clamp(time, 0, duration || Number.MAX_SAFE_INTEGER);
+    const safeTime = getSyncedDeckTime(time, 0, duration || Number.MAX_SAFE_INTEGER);
     audioA.currentTime = safeTime;
-    audioB.currentTime = Math.max(0, safeTime + nudgeB / 1000);
+    audioB.currentTime = getSyncedDeckTime(safeTime, nudgeB, audioB.duration);
     setCurrentTime(safeTime);
   };
 
@@ -270,10 +305,19 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
       return;
     }
 
-    if (graph.ctx.state === 'suspended') await graph.ctx.resume();
-    syncDecks();
-    await Promise.allSettled([audioA.play(), audioB.play()]);
-    setIsPlaying(true);
+    setPlaybackError('');
+    try {
+      if (graph.ctx.state === 'suspended') await graph.ctx.resume();
+      syncDecks();
+      await Promise.all([audioA.play(), audioB.play()]);
+      setIsPlaying(true);
+    } catch (err) {
+      audioA.pause();
+      audioB.pause();
+      setIsPlaying(false);
+      setPlaybackError('Comparator playback was blocked or the audio could not be decoded.');
+      console.warn('Comparator playback failed', err);
+    }
   };
 
   const resetComparator = () => {
@@ -289,6 +333,7 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
     setLoopStart(0);
     setLoopEnd(duration || null);
     setCurrentTime(0);
+    setPlaybackError('');
     audioARef.current?.pause();
     audioBRef.current?.pause();
     if (audioARef.current) audioARef.current.currentTime = 0;
@@ -312,7 +357,7 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
           <p className="mt-2 text-[10px] font-mono uppercase tracking-wider text-zinc-600">Compare the loaded original against the last rendered master without leaving TrackMaster.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={resetComparator} className="px-3 py-2 rounded-sm border border-zinc-800 bg-black text-zinc-500 hover:text-zinc-100"><RotateCcw size={14} /></button>
+          <button onClick={resetComparator} aria-label="Reset comparator" title="Reset comparator" className="px-3 py-2 rounded-sm border border-zinc-800 bg-black text-zinc-500 hover:text-zinc-100"><RotateCcw size={14} /></button>
           <button onClick={togglePlay} disabled={!ready} className={`flex items-center gap-2 px-4 py-2 rounded-sm font-mono font-bold text-[10px] uppercase tracking-widest ${ready ? `${accentBg} text-black` : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}>
             {isPlaying ? <Pause size={14} /> : <Play size={14} />}
             {isPlaying ? 'Pause' : 'Play'}
@@ -323,6 +368,12 @@ export function IntegratedComparator({ sourceFile, masteredBlob, masteredFileNam
       {!ready && (
         <div className="bg-black border border-zinc-800 rounded-sm p-4 text-[10px] font-mono uppercase tracking-widest text-zinc-500 leading-relaxed">
           Load a track and export a master first. The comparator will use the current source file as A and the last rendered export as B.
+        </div>
+      )}
+
+      {playbackError && (
+        <div role="alert" className="mt-4 border border-red-900/60 bg-red-950/30 rounded-sm p-3 text-[10px] font-mono uppercase tracking-wider text-red-300">
+          {playbackError}
         </div>
       )}
 
