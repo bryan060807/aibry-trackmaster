@@ -195,7 +195,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#111] text-zinc-100 font-sans flex flex-col selection:bg-zinc-800">
       
-      {/* 1. HELP OVERLAY MANUAL */}
+      {/* APP SECTION: HELP OVERLAY MANUAL */}
       <AnimatePresence>
         {helpMode && (
           <motion.div 
@@ -236,7 +236,7 @@ export default function App() {
         accentBg={accent.bg}
       />
 
-      {/* 2. HEADER */}
+      {/* APP SECTION: HEADER */}
       <header className="border-b-4 border-zinc-900 bg-[#1a1a1a] sticky top-0 z-50 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -308,8 +308,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* 3. MAIN RACK */}
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6 flex-grow">
+      {/* APP SECTION: MAIN RACK */}
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 flex-grow">
         {audioError && (
           <div className="rack-panel border border-red-500/30 bg-red-500/10 p-4 font-mono text-xs text-red-100">
             <p className="font-bold uppercase tracking-widest">TrackMaster_Status</p>
@@ -317,9 +317,9 @@ export default function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
           {/* SPECTRUM ANALYSIS */}
-          <div className="lg:col-span-2 min-h-[50rem] rack-panel p-4 flex flex-col relative overflow-hidden">
+          <div className="xl:col-span-8 rack-panel p-4 sm:p-5 flex flex-col relative overflow-hidden">
             <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
             <div className="flex justify-between items-center mb-4 z-10 px-2 pt-1">
               <h2 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Activity size={14} /> Mastering Lab</h2>
@@ -336,7 +336,7 @@ export default function App() {
                 {hasAudio && <div className="font-mono text-[10px] text-zinc-400 bg-black border border-zinc-800 px-2 py-1 rounded-sm">{formatTime(currentTime)} / {formatTime(duration)}</div>}
               </div>
             </div>
-            <div className="flex-1 bg-black border-2 border-zinc-900 rounded-sm p-1 overflow-hidden shadow-inner">
+            <div className="h-[22rem] sm:h-[28rem] xl:h-[34rem] bg-black border-2 border-zinc-900 rounded-sm p-1 overflow-hidden shadow-inner">
                <Visualizer analyser={analyser} isPlaying={isPlaying} accentColor={accent.value} hasAudio={hasAudio} />
             </div>
             <div className="mt-3 flex items-center justify-between gap-3 font-mono text-[9px] uppercase tracking-widest text-zinc-600">
@@ -448,20 +448,24 @@ export default function App() {
             </div>
           </div>
 
-          {/* TRANSPORT / QUEUE */}
-          <div className="h-96 rack-panel p-5 flex flex-col relative">
-            <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
-            <h2 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-widest mb-4">Transport</h2>
-            <div className="space-y-4 mb-6">
-                <input type="range" min={0} max={duration || 100} value={currentTime} disabled={!hasAudio} onChange={(e) => seek(parseFloat(e.target.value))} className="w-full fader" />
-                <div className="flex items-center justify-center gap-4">
-                    <button onClick={stop} disabled={!hasAudio} className="p-2.5 rounded-sm border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 disabled:text-zinc-700 transition-colors"><SkipBack size={18} /></button>
-                    <button onClick={isPlaying ? pause : play} disabled={!hasAudio} className={`p-4 rounded-sm border border-zinc-800 shadow-lg active:translate-y-[1px] transition-all ${hasAudio ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-600'}`}>
-                      {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
-                    </button>
-                </div>
-            </div>
-            <div className="flex-1 flex flex-col border-t border-zinc-800 pt-4 overflow-hidden">
+          <aside className="xl:col-span-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6">
+            {/* TRANSPORT / QUEUE */}
+            <div className="min-h-[24rem] rack-panel p-5 flex flex-col relative">
+              <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h2 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-widest">Transport</h2>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600">{hasAudio ? `${formatTime(currentTime)} / ${formatTime(duration)}` : 'No source loaded'}</span>
+              </div>
+              <div className="space-y-4 mb-6">
+                  <input type="range" min={0} max={duration || 100} value={currentTime} disabled={!hasAudio} onChange={(e) => seek(parseFloat(e.target.value))} className="w-full fader" />
+                  <div className="flex items-center justify-center gap-4">
+                      <button onClick={stop} disabled={!hasAudio} className="p-2.5 rounded-sm border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 disabled:text-zinc-700 transition-colors"><SkipBack size={18} /></button>
+                      <button onClick={isPlaying ? pause : play} disabled={!hasAudio} className={`p-4 rounded-sm border border-zinc-800 shadow-lg active:translate-y-[1px] transition-all ${hasAudio ? 'bg-zinc-800 text-zinc-100' : 'bg-zinc-900 text-zinc-600'}`}>
+                        {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+                      </button>
+                  </div>
+              </div>
+              <div className="min-h-0 flex-1 flex flex-col border-t border-zinc-800 pt-4 overflow-hidden">
                <div className="flex items-center justify-between mb-3">
                 <h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase flex items-center gap-2"><ListMusic size={12} className={accent.class} /> Queue ({queue.length})</h3>
                 <input type="file" multiple accept="audio/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
@@ -477,7 +481,7 @@ export default function App() {
               <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {queue.map((file, idx) => (
                   <div key={idx} className={`p-2 rounded-sm border flex items-center justify-between mb-1 ${idx === currentIndex ? 'bg-black border-zinc-700' : 'bg-zinc-900/40 border-transparent'}`}>
-                    <span className="text-[10px] font-mono truncate max-w-[120px]">{file.name}</span>
+                    <span className="min-w-0 text-[10px] font-mono truncate">{file.name}</span>
                     <button
                       onClick={() => removeFromQueue(idx)}
                       title="Remove from queue"
@@ -493,17 +497,16 @@ export default function App() {
                   </div>
                 )}
               </div>
+              </div>
             </div>
-          </div>
 
-          {/* MASTERING LOGS */}
-          <div className="space-y-6">
-            <div className="h-96 rack-panel p-5 flex flex-col relative overflow-hidden">
+            {/* MASTERING LOGS */}
+            <div className="min-h-[24rem] rack-panel p-5 flex flex-col relative overflow-hidden">
               <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
               <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2"><Clock size={12} className={accent.class} /><h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase">Mastering Logs</h3></div>
               <div className="flex-1 overflow-y-auto custom-scrollbar"><History accentClass={accent.class} /></div>
             </div>
-            <div className="rack-panel p-5 flex flex-col relative overflow-hidden min-h-[18rem]">
+            <div className="md:col-span-2 xl:col-span-1 rack-panel p-5 flex flex-col relative overflow-hidden min-h-[18rem]">
               <RackScrew className="top-2 left-2" /><RackScrew className="top-2 right-2" /><RackScrew className="bottom-2 left-2" /><RackScrew className="bottom-2 right-2" />
               <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-2"><ShieldCheck size={12} className={accent.class} /><h3 className="text-[10px] font-bold font-mono text-zinc-400 uppercase">Mastering Status</h3></div>
               <div className="grid grid-cols-2 gap-2 mb-4 font-mono text-[9px] uppercase tracking-widest">
@@ -565,19 +568,10 @@ export default function App() {
                 </button>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
 
-        <IntegratedComparator
-          sourceFile={currentIndex >= 0 ? queue[currentIndex] : null}
-          masteredBlob={lastExportBlob}
-          masteredFileName={lastExportFileName}
-          notes={lastComparatorNotes}
-          accentClass={accent.class}
-          accentBg={accent.bg}
-        />
-
-        {/* 4. PROCESSING UNITS (6) */}
+        {/* APP SECTION: PROCESSING UNITS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
           <RackPanel icon={<Sliders size={16} />} title="Equalizer" accentClass={accent.class}>
             <ControlSlider label="Low Shelf" value={params.eqLow} min={-12} max={12} step={0.1} unit="dB" onChange={(v: any) => handleParamChange('eqLow', v)} accentClass={accent.class} />
@@ -612,14 +606,34 @@ export default function App() {
               <div className={`mt-1 w-1.5 h-1.5 rounded-full ${accent.bg} animate-pulse`} style={{ boxShadow: `0 0 8px ${accent.value}` }} />
               <div>
                 <h4 className="text-[10px] font-mono font-bold text-zinc-300 mb-1 uppercase tracking-wider">Limiter Active</h4>
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Ceiling locked at -0.1dB</p>
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Ceiling locked at -1.0 dB</p>
               </div>
             </div>
           </RackPanel>
         </div>
+
+        <div className="space-y-3">
+          <div className="flex items-end justify-between gap-4 px-1">
+            <div>
+              <p className={`text-[9px] font-mono font-bold uppercase tracking-[0.3em] ${accent.class}`}>A / B Review</p>
+              <h2 className="mt-1 text-sm font-mono font-bold uppercase tracking-widest text-zinc-300">Master Comparator</h2>
+            </div>
+            <p className="hidden sm:block max-w-md text-right text-[9px] font-mono uppercase tracking-widest text-zinc-600">
+              Render a master, then compare it against the loaded source in the same workspace.
+            </p>
+          </div>
+          <IntegratedComparator
+            sourceFile={currentIndex >= 0 ? queue[currentIndex] : null}
+            masteredBlob={lastExportBlob}
+            masteredFileName={lastExportFileName}
+            notes={lastComparatorNotes}
+            accentClass={accent.class}
+            accentBg={accent.bg}
+          />
+        </div>
       </main>
 
-      {/* 5. FOOTER */}
+      {/* APP SECTION: FOOTER */}
       <footer className="border-t border-zinc-900 bg-[#0d0d0d] py-6 px-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-2 opacity-30">
           <ShieldCheck size={12} /><p className="text-[9px] font-mono uppercase tracking-[0.3em]">Hardware Handshake v2.0.26 // AIBRY Studio</p>
@@ -645,7 +659,7 @@ export default function App() {
         canExport={hasAudio}
       />
       
-      {/* 6. HELP TOGGLE */}
+      {/* APP SECTION: HELP TOGGLE */}
       <button 
         onClick={() => setHelpMode(!helpMode)} 
         className={`fixed bottom-6 right-6 p-4 rounded-full shadow-2xl transition-all z-[80] 
