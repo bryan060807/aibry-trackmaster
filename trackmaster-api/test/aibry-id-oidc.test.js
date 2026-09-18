@@ -39,7 +39,7 @@ test('AIBRY ID authorization URL uses PKCE and the configured app-origin callbac
   const authorizationUrl = buildAuthorizationUrl(
     {
       clientId: 'trackmaster-public-web',
-      redirectUri: 'https://trackmaster.aibry.shop/auth/aibry-id/callback',
+      redirectUri: 'https://trackmaster.aibrylabs.com/auth/aibry-id/callback',
       scopes: 'openid profile email',
     },
     {
@@ -53,7 +53,7 @@ test('AIBRY ID authorization URL uses PKCE and the configured app-origin callbac
   assert.equal(authorizationUrl.searchParams.get('client_id'), 'trackmaster-public-web');
   assert.equal(
     authorizationUrl.searchParams.get('redirect_uri'),
-    'https://trackmaster.aibry.shop/auth/aibry-id/callback'
+    'https://trackmaster.aibrylabs.com/auth/aibry-id/callback'
   );
   assert.equal(authorizationUrl.searchParams.get('scope'), 'openid profile email');
   assert.equal(authorizationUrl.searchParams.get('state'), state.state);

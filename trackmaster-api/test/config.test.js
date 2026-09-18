@@ -65,15 +65,15 @@ test('loadConfig accepts public AIBRY ID configuration with HTTPS app-origin cal
     TRACKMASTER_AIBRY_ID_DEV_ONLY: 'false',
     TRACKMASTER_AIBRY_ID_ISSUER: 'https://id.aibry.shop',
     TRACKMASTER_AIBRY_ID_CLIENT_ID: 'trackmaster-public-web',
-    TRACKMASTER_AIBRY_ID_REDIRECT_URI: 'https://trackmaster.aibry.shop/auth/aibry-id/callback',
-    TRACKMASTER_AIBRY_ID_SUCCESS_REDIRECT: 'https://trackmaster.aibry.shop/',
+    TRACKMASTER_AIBRY_ID_REDIRECT_URI: 'https://trackmaster.aibrylabs.com/auth/aibry-id/callback',
+    TRACKMASTER_AIBRY_ID_SUCCESS_REDIRECT: 'https://trackmaster.aibrylabs.com/',
     TRACKMASTER_AIBRY_ID_SELF_PROVISIONING: 'true',
   });
 
   assert.equal(config.aibryId.enabled, true);
   assert.equal(config.aibryId.devOnly, false);
   assert.equal(config.aibryId.issuer, 'https://id.aibry.shop');
-  assert.equal(config.aibryId.redirectUri, 'https://trackmaster.aibry.shop/auth/aibry-id/callback');
+  assert.equal(config.aibryId.redirectUri, 'https://trackmaster.aibrylabs.com/auth/aibry-id/callback');
   assert.equal(config.aibryId.scopes, 'openid profile email');
   assert.equal(config.aibryId.selfProvisioning, true);
   assert.equal(config.aibryId.stateCookieSecret, JWT_SECRET);
@@ -97,13 +97,13 @@ test('loadConfig rejects non-HTTPS or loopback public AIBRY ID callback URLs', (
     TRACKMASTER_AIBRY_ID_DEV_ONLY: 'false',
     TRACKMASTER_AIBRY_ID_ISSUER: 'https://id.aibry.shop',
     TRACKMASTER_AIBRY_ID_CLIENT_ID: 'trackmaster-public-web',
-    TRACKMASTER_AIBRY_ID_SUCCESS_REDIRECT: 'https://trackmaster.aibry.shop/',
+    TRACKMASTER_AIBRY_ID_SUCCESS_REDIRECT: 'https://trackmaster.aibrylabs.com/',
   };
 
   assert.throws(
     () => loadConfig({
       ...publicConfig,
-      TRACKMASTER_AIBRY_ID_REDIRECT_URI: 'http://trackmaster.aibry.shop/auth/aibry-id/callback',
+      TRACKMASTER_AIBRY_ID_REDIRECT_URI: 'http://trackmaster.aibrylabs.com/auth/aibry-id/callback',
     }),
     /TRACKMASTER_AIBRY_ID_REDIRECT_URI must use HTTPS/
   );

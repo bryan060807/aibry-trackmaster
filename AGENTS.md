@@ -88,9 +88,10 @@ Known endpoints from runbooks:
 Local API health: http://127.0.0.1:3004/api/health
 Local API readiness: http://127.0.0.1:3004/api/readiness
 Local UI: http://127.0.0.1:3000/
-Public UI: https://trackmaster.aibry.shop/
+Public UI: https://trackmaster.aibrylabs.com/
 Public API: https://trackmaster-api.aibry.shop/api/*
-Same-origin API: https://trackmaster.aibry.shop/api/*
+Same-origin API: https://trackmaster.aibrylabs.com/api/*
+Legacy UI: https://trackmaster.aibry.shop/ (redirects to the canonical UI)
 ```
 
 Verify live status before making operational claims.
@@ -124,4 +125,3 @@ node --check server/static-web.js
 Also validate read-only health endpoints when available.
 
 Do not run production restarts or DB migrations unless explicitly requested.
-

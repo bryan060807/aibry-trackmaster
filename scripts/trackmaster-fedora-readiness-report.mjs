@@ -268,7 +268,7 @@ const report = {
   routing: {
     nginxConfigPath: nginxPath,
     repoNginxPresent: fs.existsSync(nginxPath),
-    publicWebTunnel: 'trackmaster.aibry.shop -> http://127.0.0.1:3000',
+    publicWebTunnel: 'trackmaster.aibrylabs.com (canonical), trackmaster.aibry.shop (legacy redirect) -> http://127.0.0.1:3000',
     publicApiTunnel: 'trackmaster-api.aibry.shop -> http://127.0.0.1:3004',
     webServiceStatus: webStatus.ok ? webStatus.stdout : webStatus.stderr,
   },

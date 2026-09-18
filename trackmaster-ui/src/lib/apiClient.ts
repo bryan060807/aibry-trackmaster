@@ -44,6 +44,7 @@ export interface TrackWaveform {
 
 export interface ExportMetadata {
   artist?: string;
+  albumArtist?: string;
   title?: string;
   album?: string;
   genre?: string;
@@ -102,6 +103,7 @@ export async function uploadTrack(blob: Blob, options: { fileName: string; forma
 
   const metadataHeaders: Array<[keyof ExportMetadata, string]> = [
     ['artist', 'X-Artist'],
+    ['albumArtist', 'X-Album-Artist'],
     ['title', 'X-Title'],
     ['album', 'X-Album'],
     ['genre', 'X-Genre'],

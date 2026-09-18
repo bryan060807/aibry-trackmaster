@@ -73,13 +73,50 @@ export function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   });
 }
 
+function sanitizeResponseBody(value: string) {
+  const normalized = value
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
+    .replace(/\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?):\/\/[^\s"'<>]+/gi, '[redacted-url]')
+    .replace(
+      /("(?:access[_-]?token|refresh[_-]?token|token|password|secret|authorization|cookie|api[_-]?key)"\s*:\s*)"[^"]*"/gi,
+      '$1"[redacted]"',
+    );
+
+  return normalized.length > 400 ? `${normalized.slice(0, 400)}…` : normalized;
+}
+
+function responseErrorBody(payload: unknown, responseText: string) {
+  if (payload && typeof payload === 'object') {
+    const error = 'error' in payload ? payload.error : undefined;
+    const message = 'message' in payload ? payload.message : undefined;
+    const detail = typeof error === 'string' ? error : typeof message === 'string' ? message : '';
+    if (detail) return sanitizeResponseBody(detail);
+  }
+
+  return sanitizeResponseBody(responseText);
+}
+
 export async function parseJson<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let payload: unknown = {};
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText);
+    } catch {
+      payload = {};
+    }
+  }
+
   if (!response.ok) {
     if (response.status === 401) clearStoredToken();
-    const message = typeof payload.error === 'string' ? payload.error : 'Request failed';
-    throw new Error(message);
+    const status = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+    const body = responseErrorBody(payload, responseText);
+    throw new Error(body ? `${status}: ${body}` : status);
   }
+
   return payload as T;
 }
 

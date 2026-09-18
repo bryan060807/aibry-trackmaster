@@ -178,7 +178,7 @@ phase "PRECHECKS"
 [[ "$(service_state "$WEB_SERVICE")" == "active" && "$(service_substate "$WEB_SERVICE")" == "running" ]] || fail_now "Web service is not active/running before rotation."
 curl_check "pre-rotation local API health" "http://127.0.0.1:3004/api/health"
 curl_check "pre-rotation public API health" "https://trackmaster-api.aibry.shop/api/health"
-curl_check "pre-rotation public web" "https://trackmaster.aibry.shop"
+curl_check "pre-rotation public web" "https://trackmaster.aibrylabs.com"
 pass "Baseline health checks passed."
 
 OLD_DATABASE_URL="$(current_database_url)"
@@ -231,7 +231,7 @@ if [[ "$(service_state "$WEB_SERVICE")" == "active" && "$(service_substate "$WEB
 else
   fail_now "Web service is not active/running after password rotation."
 fi
-retry_curl_check "public web" "https://trackmaster.aibry.shop" 3 5 && WEB_HEALTH_RESULT="pass" || warn "Public web check did not return HTTP 2xx."
+retry_curl_check "public web" "https://trackmaster.aibrylabs.com" 3 5 && WEB_HEALTH_RESULT="pass" || warn "Public web check did not return HTTP 2xx."
 
 phase "FINAL REPORT"
 printf 'Rotation status: COMPLETED\n'

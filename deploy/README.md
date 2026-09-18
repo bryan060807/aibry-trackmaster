@@ -8,7 +8,8 @@ This app deploys as an authenticated garage-native split service:
 - `data/uploads/`: local mastered audio storage
 - frontend port: `127.0.0.1:3000`
 - API port: `127.0.0.1:3004`
-- Cloudflare Tunnel: `trackmaster.aibry.shop` to `http://127.0.0.1:3000`
+- Cloudflare Tunnel: `trackmaster.aibrylabs.com` to `http://127.0.0.1:3000`
+- Cloudflare Tunnel: `trackmaster.aibry.shop` to `http://127.0.0.1:3000` (legacy compatibility; nginx redirects to the canonical UI)
 - Cloudflare Tunnel: `trackmaster-api.aibry.shop` to `http://127.0.0.1:3004`
 
 This is the live deployment model. Windows PM2 files in the repository are
@@ -66,6 +67,8 @@ curl -I http://127.0.0.1:3000/
 Add this ingress rule to the existing tunnel configuration:
 
 ```yaml
+- hostname: trackmaster.aibrylabs.com
+  service: http://127.0.0.1:3000
 - hostname: trackmaster.aibry.shop
   service: http://127.0.0.1:3000
 - hostname: trackmaster-api.aibry.shop
@@ -73,6 +76,9 @@ Add this ingress rule to the existing tunnel configuration:
 ```
 
 Restart the existing tunnel user service after changing its config.
+The web container redirects the legacy UI hostname to the canonical hostname,
+including the original path and query string. Keep the legacy ingress until
+old bookmarks and in-flight auth links are no longer expected.
 
 ## Backend-Switch Rehearsal
 

@@ -96,6 +96,7 @@ function encodeFlacWithFfmpeg({ inputPath, outputPath, metadata = {} }) {
 function flacMetadataArgs(metadata = {}) {
   const fields = [
     ['artist', 'artist'],
+    ['albumArtist', 'album_artist'],
     ['title', 'title'],
     ['album', 'album'],
     ['genre', 'genre'],

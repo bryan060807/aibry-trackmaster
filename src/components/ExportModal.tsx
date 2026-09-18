@@ -17,13 +17,14 @@ interface ExportModalProps {
 }
 
 const METADATA_FIELDS: Array<{ key: keyof ExportMetadata; label: string; placeholder: string }> = [
-  { key: 'artist', label: 'Artist', placeholder: 'Bryan Miller' },
-  { key: 'title', label: 'Title', placeholder: 'Final Master' },
-  { key: 'album', label: 'Album', placeholder: 'Album or project name' },
-  { key: 'genre', label: 'Genre', placeholder: 'Rock, Hip-Hop, Podcast...' },
+  { key: 'artist', label: 'Artist', placeholder: 'Artist name' },
+  { key: 'albumArtist', label: 'Album Artist', placeholder: 'Album artist' },
+  { key: 'title', label: 'Title', placeholder: 'Song title' },
+  { key: 'album', label: 'Album', placeholder: 'Album title' },
+  { key: 'genre', label: 'Genre', placeholder: 'Genre' },
   { key: 'year', label: 'Year / Date', placeholder: '2026' },
   { key: 'comment', label: 'Comment', placeholder: 'Mastering notes' },
-  { key: 'copyright', label: 'Copyright', placeholder: '© 2026 Your Name' },
+  { key: 'copyright', label: 'Copyright', placeholder: 'Copyright holder' },
 ];
 
 export function ExportModal({ isOpen, onClose, onExport, accentBg, accentClass, isExporting, canExport, comparatorNotes }: ExportModalProps) {

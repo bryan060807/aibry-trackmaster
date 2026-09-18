@@ -354,6 +354,7 @@ function parseDurationSeconds(value) {
 function readWavMetadataHeaders(req, displayName) {
   return {
     artist: req.header('X-Artist') || req.header('X-Track-Artist') || '',
+    albumArtist: req.header('X-Album-Artist') || req.header('X-Track-Album-Artist') || '',
     title: req.header('X-Title') || req.header('X-Track-Title') || displayName.replace(/_mastered\.wav$/i, ''),
     album: req.header('X-Album') || req.header('X-Track-Album') || '',
     genre: req.header('X-Genre') || req.header('X-Track-Genre') || '',

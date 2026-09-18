@@ -261,9 +261,11 @@ function formatAnalysisValue(value: number, suffix: string) {
   return `${value.toFixed(1)} ${suffix}`;
 }
 
-function buildComparatorNotes(fileName: string, params: MasteringParams, analysis: MasteringAnalysis, metadata: ExportMetadata) {
+function buildComparatorNotes(params: MasteringParams, analysis: MasteringAnalysis, metadata: ExportMetadata) {
+  const albumArtist = metadata.albumArtist?.trim() || metadata.artist?.trim();
+
   return [
-    `Track: ${metadata.title?.trim() || fileName}`,
+    ...(albumArtist ? [`Album Artist: ${albumArtist}`] : []),
     `Preset: ${metadata.comment?.trim() || 'Current TrackMaster settings'}`,
     `Limiter Ceiling: ${params.limiterCeiling.toFixed(1)} dB`,
     `Sample Peak: ${formatAnalysisValue(analysis.peakDb, 'dBFS')}`,
@@ -279,7 +281,6 @@ function buildComparatorNotes(fileName: string, params: MasteringParams, analysi
     `Soft Clip: ${params.softClipperAmount.toFixed(2)}`,
     `Stereo Width: ${params.stereoWidth.toFixed(2)}`,
     `Low Mono: ${(params.lowMonoAmount * 100).toFixed(0)}% below ${params.lowMonoFrequency.toFixed(0)} Hz`,
-    'Notes: Compare original mix against this master in TrackMaster Comparator.',
   ].join('\n');
 }
 
@@ -876,7 +877,7 @@ export function useAudioEngine() {
       source.start(0);
       const renderedBuffer = await offlineCtx.startRendering();
       const analysis = analyzeRenderedBuffer(renderedBuffer);
-      const comparatorNotes = buildComparatorNotes(fileName, paramsRef.current, analysis, metadata);
+      const comparatorNotes = buildComparatorNotes(paramsRef.current, analysis, metadata);
       setLastAnalysis(analysis);
       setLastComparatorNotes(comparatorNotes);
 

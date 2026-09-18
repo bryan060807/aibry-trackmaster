@@ -66,6 +66,8 @@ documents what is allowed today.
 | `TRACKMASTER_AUTH_RATE_LIMIT` | `20` | `<approved-value>` | |
 | `TRACKMASTER_UPLOAD_LIMIT` | `120mb` | `<approved-value>` | |
 | `CORS_ORIGIN` | `http://127.0.0.1:3000` | empty unless a reviewed production origin is required | |
+| `TRACKMASTER_AIBRY_ID_REDIRECT_URI` | loopback callback | `https://trackmaster.aibrylabs.com/auth/aibry-id/callback` | |
+| `TRACKMASTER_AIBRY_ID_SUCCESS_REDIRECT` | `/` | `https://trackmaster.aibrylabs.com/` or `/` | |
 
 ## Proposed Windows Runtime Identity
 
@@ -74,6 +76,16 @@ documents what is allowed today.
 - Readiness-only PM2 name that must stay separate: `trackmaster-windows-readiness-api`
 - Planned Windows API env file path:
 - Planned Windows UI/static host config path:
+
+The UI/static host also uses these non-secret values during the hostname
+cutover:
+
+- `TRACKMASTER_CANONICAL_ORIGIN=https://trackmaster.aibrylabs.com`
+- `TRACKMASTER_LEGACY_ORIGINS=https://trackmaster.aibry.shop`
+
+Keep the legacy origin until its ingress remains available for the redirect.
+The AIBRY ID callback remains app-origin and keeps the path
+`/auth/aibry-id/callback`; it must not be changed to the API hostname.
 
 ## Execution Hold Points
 

@@ -377,7 +377,7 @@ phase "LIVE HEALTH PRECHECKS"
 curl_check "pre-cutover local health" "http://127.0.0.1:3004/api/health"
 curl_check "pre-cutover public API health" "https://trackmaster-api.aibry.shop/api/health"
 curl_check "pre-cutover local web" "http://127.0.0.1:3000"
-curl_check "pre-cutover public web" "https://trackmaster.aibry.shop"
+curl_check "pre-cutover public web" "https://trackmaster.aibrylabs.com"
 pass "Pre-cutover API and web health checks passed."
 
 phase "FINAL BACKUPS"
@@ -489,7 +489,7 @@ if [[ "$PUBLIC_API_HEALTH_RESULT" != "pass" ]]; then
   fail_now "Public API health did not pass after Postgres cutover."
 fi
 retry_curl_check "local web" "http://127.0.0.1:3000" 3 5 && LOCAL_WEB_RESULT="pass" || warn "Local web check is informational and did not pass."
-retry_curl_check "public web" "https://trackmaster.aibry.shop" 3 5 && PUBLIC_WEB_RESULT="pass" || warn "Public web check is informational and did not pass."
+retry_curl_check "public web" "https://trackmaster.aibrylabs.com" 3 5 && PUBLIC_WEB_RESULT="pass" || warn "Public web check is informational and did not pass."
 running_api_env_check
 pass "Required API smoke tests passed."
 

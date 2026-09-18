@@ -36,12 +36,14 @@ The public provider redirect URI must also use the app origin, not the API
 origin:
 
 ```txt
-https://trackmaster.aibry.shop/auth/aibry-id/callback
+https://trackmaster.aibrylabs.com/auth/aibry-id/callback
 ```
 
 Production provider registration should be a public PKCE client with scopes
 `openid profile email` and no client secret when matching the TaskMaster public
-pattern.
+pattern. The former `https://trackmaster.aibry.shop` UI origin remains a
+compatibility redirect to the canonical origin; register the canonical callback
+above with the provider.
 
 Non-secret production env names:
 
